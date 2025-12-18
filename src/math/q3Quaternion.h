@@ -37,19 +37,10 @@ struct q3Mat3;
 class q3Quaternion
 {
 public:
-    union
-    {
-        r32 v[4];
-
-        struct
-        {
-            r32 x;
-            r32 y;
-            r32 z;
-
-            r32 w;
-        };
-    };
+    r32 x;
+    r32 y;
+    r32 z;
+    r32 w;
 
     q3Quaternion();
     q3Quaternion(r32 a, r32 b, r32 c, r32 d);
@@ -78,7 +69,7 @@ inline const q3Quaternion q3Normalize(const q3Quaternion &q)
     if (d == 0)
         w = r32(1.0);
 
-    d = r32(1.0) / std::sqrt(d);
+    d = r32(1.0) / sqrt(d);
 
     if (d > r32(1.0e-8))
     {

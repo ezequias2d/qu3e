@@ -3,10 +3,11 @@ add_rules("plugin.compile_commands.autoupdate", {outputdir = ".vscode"})
 
 target("qu3e")
     set_kind("static")
-    set_languages("c++11")
+    set_languages("c++23")
     add_files("src/**.cpp") 
     add_includedirs("src", {public = true})
     add_headerfiles("src/**.h", "src/**.inl")
+    add_deps("cstd")
 
 target("qu3e_demo")
     set_kind("binary")

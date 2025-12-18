@@ -53,7 +53,7 @@ inline const q3Vec3 q3Cross(const q3Vec3 &a, const q3Vec3 &b)
 //------------------------------------------------------------------------------
 inline r32 q3Length(const q3Vec3 &v)
 {
-    return std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+    return sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 }
 
 //------------------------------------------------------------------------------
@@ -83,7 +83,7 @@ inline r32 q3Distance(const q3Vec3 &a, const q3Vec3 &b)
     r32 yp = a.y - b.y;
     r32 zp = a.z - b.z;
 
-    return std::sqrt(xp * xp + yp * yp + zp * zp);
+    return sqrt(xp * xp + yp * yp + zp * zp);
 }
 
 //------------------------------------------------------------------------------

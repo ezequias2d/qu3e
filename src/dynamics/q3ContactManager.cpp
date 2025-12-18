@@ -300,7 +300,7 @@ void q3ContactManager::RenderContacts(q3Render *render) const
         {
             const q3Contact *c = m->contacts + j;
             f32 blue           = (f32)(255 - c->warmStarted) / 255.0f;
-            f32 red            = 1.0f - blue;
+            f32 red            = f32(1.0) - blue;
             render->SetScale(10.0f, 10.0f, 10.0f);
             render->SetPenColor(red, blue, blue);
             render->SetPenPosition(c->position.x, c->position.y, c->position.z);

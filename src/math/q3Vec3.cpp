@@ -95,7 +95,17 @@ r32 &q3Vec3::operator[](u32 i)
 {
     assert(i >= 0 && i < 3);
 
-    return v[i];
+    switch (i)
+    {
+    case 0:
+        return x;
+    case 1:
+        return y;
+    case 2:
+        return z;
+    default:
+        assert(0);
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -103,7 +113,15 @@ r32 q3Vec3::operator[](u32 i) const
 {
     assert(i >= 0 && i < 3);
 
-    return v[i];
+    switch (i)
+    {
+    case 0:
+        return x;
+    case 1:
+        return y;
+    case 2:
+        return z;
+    }
 }
 
 //------------------------------------------------------------------------------

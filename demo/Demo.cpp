@@ -280,12 +280,12 @@ void RenderFrame(zabato::window *win, zabato::gpu *gpu)
     gpu->set_matrix_mode(zabato::matrix_mode::modelview);
     gpu->load_identity();
 
-    zabato::vec3<float> pos(
+    zabato::vec3<zabato::real> pos(
         Camera::position[0], Camera::position[1], Camera::position[2]);
-    zabato::vec3<float> target(
+    zabato::vec3<zabato::real> target(
         Camera::target[0], Camera::target[1], Camera::target[2]);
-    zabato::vec3<float> up(0.0f, 1.0f, 0.0f);
-    zabato::mat4<float> view = zabato::mat4_look_at(pos, target, up);
+    zabato::vec3<zabato::real> up(0.0f, 1.0f, 0.0f);
+    zabato::mat4<zabato::real> view = zabato::mat4_look_at(pos, target, up);
     gpu->load_matrix(view);
 
     zabato::imgui::new_frame();

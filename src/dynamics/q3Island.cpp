@@ -133,7 +133,7 @@ void q3Island::Solve()
             else
             {
                 body->m_sleepTime += m_dt;
-                minSleepTime = q3Min(minSleepTime, body->m_sleepTime);
+                minSleepTime = q3Min((r32)minSleepTime, (r32)body->m_sleepTime);
             }
         }
 

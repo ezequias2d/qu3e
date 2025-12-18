@@ -33,7 +33,7 @@ freely, subject to the following restrictions:
 //------------------------------------------------------------------------------
 #define Q3_SLEEP_LINEAR r32(0.01)
 
-#define Q3_SLEEP_ANGULAR r32((3.0 / 180.0) * q3PI)
+#define Q3_SLEEP_ANGULAR r32((r32(3.0) / r32(180.0)) * q3PI)
 
 #define Q3_SLEEP_TIME r32(0.5)
 

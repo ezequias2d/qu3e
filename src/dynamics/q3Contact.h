@@ -49,7 +49,7 @@ inline r32 q3MixRestitution(const q3Box *A, const q3Box *B)
 // drive down the mixing result. Example: anything slides on ice.
 inline r32 q3MixFriction(const q3Box *A, const q3Box *B)
 {
-    return std::sqrt(A->friction * B->friction);
+    return sqrt(A->friction * B->friction);
 }
 
 // in stands for "incoming"

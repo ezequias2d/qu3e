@@ -26,9 +26,12 @@ freely, subject to the following restrictions:
 #ifndef Q3TYPES_H
 #define Q3TYPES_H
 
-typedef float r32;
+#include <zabato/real.hpp>
+
+using namespace zabato;
+typedef zabato::real r32;
 typedef double r64;
-typedef float f32;
+typedef zabato::real f32;
 typedef double f64;
 typedef signed char i8;
 typedef signed short i16;

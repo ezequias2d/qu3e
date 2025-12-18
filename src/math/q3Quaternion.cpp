@@ -47,11 +47,11 @@ q3Quaternion::q3Quaternion(const q3Vec3 &axis, r32 radians)
 void q3Quaternion::Set(const q3Vec3 &axis, r32 radians)
 {
     r32 halfAngle = r32(0.5) * radians;
-    r32 s         = std::sin(halfAngle);
+    r32 s         = sin(halfAngle);
     x             = s * axis.x;
     y             = s * axis.y;
     z             = s * axis.z;
-    w             = std::cos(halfAngle);
+    w             = cos(halfAngle);
 }
 
 //------------------------------------------------------------------------------
@@ -59,9 +59,9 @@ void q3Quaternion::ToAxisAngle(q3Vec3 *axis, r32 *angle) const
 {
     assert(w <= r32(1.0));
 
-    *angle = r32(2.0) * std::acos(w);
+    *angle = r32(2.0) * acos(w);
 
-    r32 l = std::sqrt(r32(1.0) - w * w);
+    r32 l = sqrt(r32(1.0) - w * w);
 
     if (l == r32(0.0))
     {
