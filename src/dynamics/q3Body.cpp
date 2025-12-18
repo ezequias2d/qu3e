@@ -479,9 +479,9 @@ void q3Body::Dump(FILE *file, i32 index) const
         fprintf(file, "\t\tsd.SetSensor( bool( %d ) );\n", sensor);
         fprintf(file, "\t\tq3Transform boxTx;\n");
         q3Transform boxTx = box->local;
-        q3Vec3 xAxis      = boxTx.rotation.ex;
-        q3Vec3 yAxis      = boxTx.rotation.ey;
-        q3Vec3 zAxis      = boxTx.rotation.ez;
+        q3Vec3 xAxis      = boxTx.rotation.col0;
+        q3Vec3 yAxis      = boxTx.rotation.col1;
+        q3Vec3 zAxis      = boxTx.rotation.col2;
         fprintf(file,
                 "\t\tq3Vec3 xAxis( r32( %.15lf ), r32( %.15lf ), r32( %.15lf ) "
                 ");\n",
@@ -500,7 +500,8 @@ void q3Body::Dump(FILE *file, i32 index) const
                 zAxis.x,
                 zAxis.y,
                 zAxis.z);
-        fprintf(file, "\t\tboxTx.rotation.SetRows( xAxis, yAxis, zAxis );\n");
+        fprintf(file,
+                "\t\tboxTx.rotation.SetColumns( xAxis, yAxis, zAxis );\n");
         fprintf(file,
                 "\t\tboxTx.position.Set( r32( %.15lf ), r32( %.15lf ), r32( "
                 "%.15lf ) );\n",
@@ -564,13 +565,13 @@ void q3Body::CalculateMassData()
         m_invInertiaModel = q3Inverse(inertia);
 
         if (m_flags & eLockAxisX)
-            q3Identity(m_invInertiaModel.ex);
+            q3Identity(m_invInertiaModel.col0);
 
         if (m_flags & eLockAxisY)
-            q3Identity(m_invInertiaModel.ey);
+            q3Identity(m_invInertiaModel.col1);
 
         if (m_flags & eLockAxisZ)
-            q3Identity(m_invInertiaModel.ez);
+            q3Identity(m_invInertiaModel.col2);
     }
     else
     {

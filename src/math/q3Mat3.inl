@@ -48,8 +48,16 @@ inline const q3Mat3 q3Rotate(const q3Vec3 &x, const q3Vec3 &y, const q3Vec3 &z)
 //------------------------------------------------------------------------------
 inline const q3Mat3 q3Transpose(const q3Mat3 &m)
 {
-    return q3Mat3(
-        m.ex.x, m.ey.x, m.ez.x, m.ex.y, m.ey.y, m.ez.y, m.ex.z, m.ey.z, m.ez.z);
+    // Transpose: Swapping rows and columns
+    return q3Mat3(m.col0.x,
+                  m.col1.x,
+                  m.col2.x,
+                  m.col0.y,
+                  m.col1.y,
+                  m.col2.y,
+                  m.col0.z,
+                  m.col1.z,
+                  m.col2.z);
 }
 
 //------------------------------------------------------------------------------
@@ -86,11 +94,22 @@ inline const q3Mat3 q3Diagonal(r32 a, r32 b, r32 c)
 //------------------------------------------------------------------------------
 inline const q3Mat3 q3OuterProduct(const q3Vec3 &u, const q3Vec3 &v)
 {
-    q3Vec3 a = v * u.x;
-    q3Vec3 b = v * u.y;
-    q3Vec3 c = v * u.z;
+    // u * v^T
+    // [ u.x * v.x   u.x * v.y   u.x * v.z ]
+    // [ u.y * v.x   u.y * v.y   u.y * v.z ]
+    // [ u.z * v.x   u.z * v.y   u.z * v.z ]
 
-    return q3Mat3(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
+    // In column-major constructor:
+    // q3Mat3(col0, col1, col2)
+    // col0 = u * v.x
+    // col1 = u * v.y
+    // col2 = u * v.z
+
+    q3Vec3 a = u * v.x;
+    q3Vec3 b = u * v.y;
+    q3Vec3 c = u * v.z;
+
+    return q3Mat3(a, b, c);
 }
 
 //------------------------------------------------------------------------------
@@ -137,14 +156,19 @@ inline const q3Mat3 q3Covariance(q3Vec3 *points, u32 numPoints)
 //------------------------------------------------------------------------------
 inline const q3Mat3 q3Inverse(const q3Mat3 &m)
 {
+    // Det = dot(col0, cross(col1, col2))
     q3Vec3 tmp0, tmp1, tmp2;
     r32 detinv;
 
-    tmp0 = q3Cross(m.ey, m.ez);
-    tmp1 = q3Cross(m.ez, m.ex);
-    tmp2 = q3Cross(m.ex, m.ey);
+    tmp0 = q3Cross(m.col1, m.col2);
+    tmp1 = q3Cross(m.col2, m.col0);
+    tmp2 = q3Cross(m.col0, m.col1);
 
-    detinv = r32(1.0) / q3Dot(m.ez, tmp2);
+    detinv = r32(1.0) / q3Dot(m.col2, tmp2);
+
+    // Inverse = Transpose(Cofactors) / Det
+    // In Column major, Cofactors are columns of the cofactor matrix.
+    // We already computed cross products which are related to cofactors.
 
     return q3Mat3(tmp0.x * detinv,
                   tmp1.x * detinv,

@@ -33,22 +33,22 @@ q3Mat3::q3Mat3() {}
 
 //------------------------------------------------------------------------------
 q3Mat3::q3Mat3(r32 a, r32 b, r32 c, r32 d, r32 e, r32 f, r32 g, r32 h, r32 i)
-    : ex(a, b, c), ey(d, e, f), ez(g, h, i)
+    : col0(a, b, c), col1(d, e, f), col2(g, h, i)
 {
 }
 
 //------------------------------------------------------------------------------
-q3Mat3::q3Mat3(const q3Vec3 &_x, const q3Vec3 &_y, const q3Vec3 &_z)
-    : ex(_x), ey(_y), ez(_z)
+q3Mat3::q3Mat3(const q3Vec3 &_col0, const q3Vec3 &_col1, const q3Vec3 &_col2)
+    : col0(_col0), col1(_col1), col2(_col2)
 {
 }
 
 //------------------------------------------------------------------------------
 void q3Mat3::Set(r32 a, r32 b, r32 c, r32 d, r32 e, r32 f, r32 g, r32 h, r32 i)
 {
-    ex.Set(a, b, c);
-    ey.Set(d, e, f);
-    ez.Set(g, h, i);
+    col0.Set(a, b, c);
+    col1.Set(d, e, f);
+    col2.Set(g, h, i);
 }
 
 //------------------------------------------------------------------------------
@@ -76,19 +76,27 @@ void q3Mat3::Set(const q3Vec3 &axis, r32 angle)
 }
 
 //------------------------------------------------------------------------------
+void q3Mat3::SetColumns(const q3Vec3 &x, const q3Vec3 &y, const q3Vec3 &z)
+{
+    col0 = x;
+    col1 = y;
+    col2 = z;
+}
+
+//------------------------------------------------------------------------------
 void q3Mat3::SetRows(const q3Vec3 &x, const q3Vec3 &y, const q3Vec3 &z)
 {
-    ex = x;
-    ey = y;
-    ez = z;
+    col0.Set(x.x, y.x, z.x);
+    col1.Set(x.y, y.y, z.y);
+    col2.Set(x.z, y.z, z.z);
 }
 
 //------------------------------------------------------------------------------
 q3Mat3 &q3Mat3::operator=(const q3Mat3 &rhs)
 {
-    ex = rhs.ex;
-    ey = rhs.ey;
-    ez = rhs.ez;
+    col0 = rhs.col0;
+    col1 = rhs.col1;
+    col2 = rhs.col2;
 
     return *this;
 }
@@ -104,9 +112,9 @@ q3Mat3 &q3Mat3::operator*=(const q3Mat3 &rhs)
 //------------------------------------------------------------------------------
 q3Mat3 &q3Mat3::operator*=(r32 f)
 {
-    ex *= f;
-    ey *= f;
-    ez *= f;
+    col0 *= f;
+    col1 *= f;
+    col2 *= f;
 
     return *this;
 }
@@ -114,9 +122,9 @@ q3Mat3 &q3Mat3::operator*=(r32 f)
 //------------------------------------------------------------------------------
 q3Mat3 &q3Mat3::operator+=(const q3Mat3 &rhs)
 {
-    ex += rhs.ex;
-    ey += rhs.ey;
-    ez += rhs.ez;
+    col0 += rhs.col0;
+    col1 += rhs.col1;
+    col2 += rhs.col2;
 
     return *this;
 }
@@ -124,9 +132,9 @@ q3Mat3 &q3Mat3::operator+=(const q3Mat3 &rhs)
 //------------------------------------------------------------------------------
 q3Mat3 &q3Mat3::operator-=(const q3Mat3 &rhs)
 {
-    ex -= rhs.ex;
-    ey -= rhs.ey;
-    ez -= rhs.ez;
+    col0 -= rhs.col0;
+    col1 -= rhs.col1;
+    col2 -= rhs.col2;
 
     return *this;
 }
@@ -137,14 +145,14 @@ q3Vec3 &q3Mat3::operator[](u32 index)
     switch (index)
     {
     case 0:
-        return ex;
+        return col0;
     case 1:
-        return ey;
+        return col1;
     case 2:
-        return ez;
+        return col2;
     default:
         assert(false);
-        return ex;
+        return col0;
     }
 }
 
@@ -154,54 +162,63 @@ const q3Vec3 &q3Mat3::operator[](u32 index) const
     switch (index)
     {
     case 0:
-        return ex;
+        return col0;
     case 1:
-        return ey;
+        return col1;
     case 2:
-        return ez;
+        return col2;
     default:
         assert(false);
-        return ex;
+        return col0;
     }
 }
 
 //------------------------------------------------------------------------------
-const q3Vec3 q3Mat3::Column0() const { return q3Vec3(ex.x, ey.x, ez.x); }
+const q3Vec3 q3Mat3::Column0() const { return col0; }
 
 //------------------------------------------------------------------------------
-const q3Vec3 q3Mat3::Column1() const { return q3Vec3(ex.y, ey.y, ez.y); }
+const q3Vec3 q3Mat3::Column1() const { return col1; }
 
 //------------------------------------------------------------------------------
-const q3Vec3 q3Mat3::Column2() const { return q3Vec3(ex.z, ey.z, ez.z); }
+const q3Vec3 q3Mat3::Column2() const { return col2; }
+
+//------------------------------------------------------------------------------
+const q3Vec3 q3Mat3::Row0() const { return q3Vec3(col0.x, col1.x, col2.x); }
+
+//------------------------------------------------------------------------------
+const q3Vec3 q3Mat3::Row1() const { return q3Vec3(col0.y, col1.y, col2.y); }
+
+//------------------------------------------------------------------------------
+const q3Vec3 q3Mat3::Row2() const { return q3Vec3(col0.z, col1.z, col2.z); }
 
 //------------------------------------------------------------------------------
 const q3Vec3 q3Mat3::operator*(const q3Vec3 &rhs) const
 {
-    return q3Vec3(ex.x * rhs.x + ey.x * rhs.y + ez.x * rhs.z,
-                  ex.y * rhs.x + ey.y * rhs.y + ez.y * rhs.z,
-                  ex.z * rhs.x + ey.z * rhs.y + ez.z * rhs.z);
+    // M * v (Standard Column-Major)
+    return col0 * rhs.x + col1 * rhs.y + col2 * rhs.z;
 }
 
 //------------------------------------------------------------------------------
 const q3Mat3 q3Mat3::operator*(const q3Mat3 &rhs) const
 {
-    return q3Mat3((*this * rhs.ex), (*this * rhs.ey), (*this * rhs.ez));
+    // Matrix-Matrix multiplication: Columns of result are M * rhs.col
+    return q3Mat3(*this * rhs.col0, *this * rhs.col1, *this * rhs.col2);
 }
 
 //------------------------------------------------------------------------------
 const q3Mat3 q3Mat3::operator*(r32 f) const
 {
-    return q3Mat3(ex * f, ey * f, ez * f);
+    return q3Mat3(col0 * f, col1 * f, col2 * f);
 }
 
 //------------------------------------------------------------------------------
 const q3Mat3 q3Mat3::operator+(const q3Mat3 &rhs) const
 {
-    return q3Mat3(ex + rhs.ex, ey + rhs.ey, ez + rhs.ez);
+    return q3Mat3(col0 + rhs.col0, col1 + rhs.col1, col2 + rhs.col2);
 }
 
 //------------------------------------------------------------------------------
 const q3Mat3 q3Mat3::operator-(const q3Mat3 &rhs) const
 {
-    return q3Mat3(ex - rhs.ex, ey - rhs.ey, ez - rhs.ez);
+    return q3Mat3(col0 - rhs.col0, col1 - rhs.col1, col2 - rhs.col2);
 }
