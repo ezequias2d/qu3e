@@ -27,6 +27,7 @@ freely, subject to the following restrictions:
 #define DEMO_H
 
 #include "../src/q3.h"
+#include "zabato/input.hpp"
 
 // Base class for running demos to show off q3
 struct Demo
@@ -38,8 +39,8 @@ struct Demo
     virtual void Shutdown() {};
 
     virtual void Render(q3Render *debugDrawer) { (void)debugDrawer; }
-    virtual void KeyDown(unsigned char key) { (void)key; }
-    virtual void KeyUp(unsigned char key) { (void)key; }
+    virtual void KeyDown(zabato::key_code key) { (void)key; }
+    virtual void KeyUp(zabato::key_code key) { (void)key; }
     virtual void LeftClick(i32 x, i32 y)
     {
         (void)x;
@@ -56,7 +57,15 @@ extern bool singleStep;
 // Globals for running the scene
 extern float dt;
 extern q3Scene scene;
-int InitApp(int argc, char **argv);
+extern q3Scene scene;
+namespace zabato
+{
+class window;
+class gpu;
+} // namespace zabato
+void InitDemo(zabato::window *win, zabato::gpu *gpu);
+void UpdateFrame(float dt);
+void RenderFrame(zabato::window *win, zabato::gpu *gpu);
 
 // Globals for maintaining a list of demos
 extern i32 demoCount;

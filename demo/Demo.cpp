@@ -22,15 +22,11 @@ freely, subject to the following restrictions:
     3. This notice may not be removed or altered from any source distribution.
 */
 //------------------------------------------------------------------------------
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-#endif
-#include "../imgui/imgui.h"
-#include "Clock.h"
 #include "Demo.h"
-#include "stb_image.h"
-#include <GL/glut.h>
+#include <zabato/gpu.hpp>
+#include <zabato/imgui.hpp>
+#include <zabato/input.hpp>
+#include <zabato/window.hpp>
 
 #include "BoxStack.h"
 #include "DropBoxes.h"
@@ -39,7 +35,6 @@ freely, subject to the following restrictions:
 
 float dt = 1.0f / 60.0f;
 q3Scene scene(dt);
-Clock g_clock;
 bool paused            = false;
 bool singleStep        = false;
 bool enableSleep       = true;
@@ -49,7 +44,6 @@ i32 mouseX;
 i32 mouseY;
 bool mouseLeftDown;
 bool mouseRightDown;
-static GLuint fontTex;
 int windowWidth;
 int windowHeight;
 i32 demoCount;
@@ -61,11 +55,13 @@ Demo *demos[Q3_DEMO_MAX_COUNT];
 class Renderer : public q3Render
 {
 public:
+    void SetGPU(zabato::gpu *gpu) { m_gpu = gpu; }
+
     void SetPenColor(f32 r, f32 g, f32 b, f32 a = 1.0f) override
     {
         Q3_UNUSED(a);
-
-        glColor3f((float)r, (float)g, (float)b);
+        if (m_gpu)
+            m_gpu->color(r, g, b);
     }
 
     void SetPenPosition(f32 x, f32 y, f32 z) override
@@ -75,17 +71,21 @@ public:
 
     void SetScale(f32 sx, f32 sy, f32 sz) override
     {
-        glPointSize((float)sx);
         sx_ = sx, sy_ = sy, sz_ = sz;
     }
 
     void Line(f32 x, f32 y, f32 z) override
     {
-        glBegin(GL_LINES);
-        glVertex3f((float)x_, (float)y_, (float)z_);
-        glVertex3f((float)x, (float)y, (float)z);
+        if (m_gpu)
+        {
+            m_gpu->enable_depth_test(false);
+            m_gpu->begin(zabato::primitive_type::lines);
+            m_gpu->vertex(x_, y_, z_);
+            m_gpu->vertex(x, y, z);
+            m_gpu->end();
+            m_gpu->enable_depth_test(true);
+        }
         SetPenPosition(x, y, z);
-        glEnd();
     }
 
     void Triangle(f32 x1,
@@ -98,15 +98,18 @@ public:
                   f32 y3,
                   f32 z3) override
     {
-        glEnable(GL_LIGHTING);
-        glBegin(GL_TRIANGLES);
-        glNormal3f((float)nx_, (float)ny_, (float)nz_);
-        glColor4f(0.2f, 0.4f, 0.7f, 0.7f);
-        glVertex3f((float)x1, (float)y1, (float)z1);
-        glVertex3f((float)x2, (float)y2, (float)z2);
-        glVertex3f((float)x3, (float)y3, (float)z3);
-        glEnd();
-        glDisable(GL_LIGHTING);
+        if (m_gpu)
+        {
+            m_gpu->enable_lighting(true);
+            m_gpu->begin(zabato::primitive_type::triangles);
+            m_gpu->normal(nx_, ny_, nz_);
+            m_gpu->color(0.2f, 0.4f, 0.7f, 0.7f);
+            m_gpu->vertex(x1, y1, z1);
+            m_gpu->vertex(x2, y2, z2);
+            m_gpu->vertex(x3, y3, z3);
+            m_gpu->end();
+            m_gpu->enable_lighting(false);
+        }
     }
 
     void SetTriNormal(f32 x, f32 y, f32 z) override
@@ -118,12 +121,16 @@ public:
 
     void Point() override
     {
-        glBegin(GL_POINTS);
-        glVertex3f((float)x_, (float)y_, (float)z_);
-        glEnd();
+        if (m_gpu)
+        {
+            m_gpu->begin(zabato::primitive_type::points);
+            m_gpu->vertex(x_, y_, z_);
+            m_gpu->end();
+        }
     };
 
 private:
+    zabato::gpu *m_gpu = nullptr;
     f32 x_, y_, z_;
     f32 sx_, sy_, sz_;
     f32 nx_, ny_, nz_;
@@ -131,140 +138,41 @@ private:
 
 Renderer renderer;
 
-// This is the main rendering function that you have to implement and provide to
-// ImGui (via setting up 'RenderDrawListsFn' in the ImGuiIO structure) If text
-// or lines are blurry when integrating ImGui in your engine:
-// - in your Render function, try translating your projection matrix by
-// (0.5f,0.5f) or (0.375f,0.375f)
-// - try adjusting ImGui::GetIO().PixelCenterOffset to 0.5f or 0.375f
-static void ImImpl_RenderDrawLists(ImDrawList **const cmd_lists,
-                                   int cmd_lists_count)
+void OnCursorPos(zabato::window *win, zabato::real x, zabato::real y)
 {
-    if (cmd_lists_count == 0)
-        return;
-
-    // We are using the OpenGL fixed pipeline to make the example code simpler
-    // to read! A probable faster way to render would be to collate all vertices
-    // from all cmd_lists into a single vertex buffer. Setup render state:
-    // alpha-blending enabled, no face culling, no depth testing, scissor
-    // enabled, vertex/texcoord/color pointers.
-    glPushAttrib(GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT | GL_TRANSFORM_BIT);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_DEPTH_TEST);
-    glEnable(GL_SCISSOR_TEST);
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    glEnableClientState(GL_COLOR_ARRAY);
-
-    // Setup texture
-    glBindTexture(GL_TEXTURE_2D, fontTex);
-    glEnable(GL_TEXTURE_2D);
-
-    // Setup orthographic projection matrix
-    const float width  = ImGui::GetIO().DisplaySize.x;
-    const float height = ImGui::GetIO().DisplaySize.y;
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    glOrtho(0.0f, width, height, 0.0f, -1.0f, +1.0f);
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
-
-    // Render command lists
-    for (int n = 0; n < cmd_lists_count; n++)
-    {
-        const ImDrawList *cmd_list = cmd_lists[n];
-        const unsigned char *vtx_buffer =
-            (const unsigned char *)&cmd_list->vtx_buffer.front();
-        glVertexPointer(2,
-                        GL_FLOAT,
-                        sizeof(ImDrawVert),
-                        (void *)(vtx_buffer + offsetof(ImDrawVert, pos)));
-        glTexCoordPointer(2,
-                          GL_FLOAT,
-                          sizeof(ImDrawVert),
-                          (void *)(vtx_buffer + offsetof(ImDrawVert, uv)));
-        glColorPointer(4,
-                       GL_UNSIGNED_BYTE,
-                       sizeof(ImDrawVert),
-                       (void *)(vtx_buffer + offsetof(ImDrawVert, col)));
-
-        int vtx_offset = 0;
-        for (size_t cmd_i = 0; cmd_i < cmd_list->commands.size(); cmd_i++)
-        {
-            const ImDrawCmd *pcmd = &cmd_list->commands[cmd_i];
-            glScissor((int)pcmd->clip_rect.x,
-                      (int)(height - pcmd->clip_rect.w),
-                      (int)(pcmd->clip_rect.z - pcmd->clip_rect.x),
-                      (int)(pcmd->clip_rect.w - pcmd->clip_rect.y));
-            glDrawArrays(GL_TRIANGLES, vtx_offset, pcmd->vtx_count);
-            vtx_offset += pcmd->vtx_count;
-        }
-    }
-    glDisableClientState(GL_COLOR_ARRAY);
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    glDisableClientState(GL_VERTEX_ARRAY);
-
-    // Restore modified state
-    glMatrixMode(GL_MODELVIEW);
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glPopAttrib();
+    mouseX = (int)x;
+    mouseY = (int)y;
 }
 
-void Mouse(int button, int state, int x, int y)
+void OnMouseButton(zabato::window *win,
+                   zabato::mouse_button button,
+                   zabato::button_state state,
+                   zabato::modifier_keys mods)
 {
-    mouseX      = x;
-    mouseY      = y;
-    ImGuiIO &io = ImGui::GetIO();
-    io.MousePos = ImVec2((float)mouseX, (float)mouseY);
-
-    if (state == GLUT_DOWN)
+    using namespace zabato;
+    if (state == button_state::press)
     {
-        switch (button)
-        {
-        case GLUT_LEFT_BUTTON:
+        if (button == mouse_button::left)
         {
             mouseLeftDown = true;
-            demos[currentDemo]->LeftClick(x, y);
+            demos[currentDemo]->LeftClick(mouseX, mouseY);
         }
-        break;
-        case GLUT_RIGHT_BUTTON:
+        else if (button == mouse_button::right)
         {
             mouseRightDown = true;
         }
-        break;
-        }
     }
-
-    else if (state == GLUT_UP)
+    else if (state == button_state::release)
     {
-        switch (button)
-        {
-        case GLUT_LEFT_BUTTON:
+        if (button == mouse_button::left)
         {
             mouseLeftDown = false;
         }
-        break;
-        case GLUT_RIGHT_BUTTON:
+        else if (button == mouse_button::right)
         {
             mouseRightDown = false;
         }
-        break;
-        }
     }
-}
-
-void MouseMotion(int dx, int dy)
-{
-    mouseX      = dx;
-    mouseY      = dy;
-    ImGuiIO &io = ImGui::GetIO();
-    io.MousePos = ImVec2((float)mouseX, (float)mouseY);
 }
 
 namespace Camera
@@ -280,127 +188,112 @@ float diffuse[4]  = {0.2f, 0.4f, 0.7f, 1.0f};
 float specular[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 } // namespace Light
 
-void Keyboard(unsigned char key, int x, int y)
+void OnKey(zabato::window *win,
+           zabato::key_code key,
+           int,
+           zabato::button_state state,
+           zabato::modifier_keys)
 {
+    using namespace zabato;
     const float increment = 0.2f;
 
-    switch (key)
+    if (state == button_state::press || state == button_state::repeat)
     {
-    case 27:
-        exit(0);
-        break;
-    case 'p':
-        paused = paused ? true : false;
-        break;
-    case ' ':
-        paused     = true;
-        singleStep = true;
-        break;
-    case 'w':
-        Camera::position[2] -= increment;
-        Camera::target[2] -= increment;
-        break;
-    case 's':
-        Camera::position[2] += increment;
-        Camera::target[2] += increment;
-        break;
-    case 'a':
-        Camera::position[0] -= increment;
-        Camera::target[0] -= increment;
-        break;
-    case 'd':
-        Camera::position[0] += increment;
-        Camera::target[0] += increment;
-        break;
-    case 'q':
-        Camera::position[1] -= increment;
-        Camera::target[1] -= increment;
-        break;
-    case 'e':
-        Camera::position[1] += increment;
-        Camera::target[1] += increment;
-        break;
-    default:
-        // printf( "%d\n", key );
-        break;
+        if (key == key_code::escape)
+            exit(0); // Exit on ESC
+
+        switch (key)
+        {
+        case key_code::p:
+            if (state == button_state::press)
+                paused = !paused;
+            break;
+        case key_code::space:
+            if (state == button_state::press)
+            {
+                paused     = true;
+                singleStep = true;
+            }
+            break;
+        case key_code::w:
+            Camera::position[2] -= increment;
+            Camera::target[2] -= increment;
+            break;
+        case key_code::s:
+            Camera::position[2] += increment;
+            Camera::target[2] += increment;
+            break;
+        case key_code::a:
+            Camera::position[0] -= increment;
+            Camera::target[0] -= increment;
+            break;
+        case key_code::d:
+            Camera::position[0] += increment;
+            Camera::target[0] += increment;
+            break;
+        case key_code::q:
+            Camera::position[1] -= increment;
+            Camera::target[1] -= increment;
+            break;
+        case key_code::e:
+            Camera::position[1] += increment;
+            Camera::target[1] += increment;
+            break;
+        default:
+            break;
+        }
+
+        if (key != key_code::unknown)
+            demos[currentDemo]->KeyDown(key);
     }
-
-    ImGuiIO &io      = ImGui::GetIO();
-    io.KeysDown[key] = true;
-
-    int mod     = glutGetModifiers();
-    io.KeyCtrl  = (mod & GLUT_ACTIVE_CTRL) != 0;
-    io.KeyShift = (mod & GLUT_ACTIVE_SHIFT) != 0;
-
-    demos[currentDemo]->KeyDown(key);
+    else if (state == button_state::release)
+    {
+        if (key != key_code::unknown)
+            demos[currentDemo]->KeyUp(key);
+    }
 }
 
-void KeyboardUp(unsigned char key, int x, int y)
+zabato::texture *g_whiteTex = nullptr;
+
+void RenderFrame(zabato::window *win, zabato::gpu *gpu)
 {
+    gpu->new_frame();
+    gpu->enable_scissor_test(false);
 
-    ImGuiIO &io      = ImGui::GetIO();
-    io.KeysDown[key] = false;
+    if (g_whiteTex)
+        gpu->bind_texture(g_whiteTex);
+    else
+        gpu->unbind_texture();
 
-    int mod     = glutGetModifiers();
-    io.KeyCtrl  = (mod & GLUT_ACTIVE_CTRL) != 0;
-    io.KeyShift = (mod & GLUT_ACTIVE_SHIFT) != 0;
+    zabato::vec2<int> size = win->get_framebuffer_size();
+    int w                  = size.x;
+    int h                  = size.y;
+    if (h <= 0)
+        h = 1;
 
-    demos[currentDemo]->KeyUp(key);
-}
+    f32 aspectRatio = (f32)w / (f32)h;
+    gpu->viewport(w, h);
+    gpu->set_matrix_mode(zabato::matrix_mode::projection);
+    gpu->load_identity();
+    gpu->perspective_fov(
+        45.0f * (3.14159f / 180.0f), aspectRatio, 0.1f, 10000.0f);
+    gpu->set_matrix_mode(zabato::matrix_mode::modelview);
+    gpu->load_identity();
 
-void Reshape(int width, int height)
-{
-    if (height <= 0)
-        height = 1;
+    zabato::vec3<float> pos(
+        Camera::position[0], Camera::position[1], Camera::position[2]);
+    zabato::vec3<float> target(
+        Camera::target[0], Camera::target[1], Camera::target[2]);
+    zabato::vec3<float> up(0.0f, 1.0f, 0.0f);
+    zabato::mat4<float> view = zabato::mat4_look_at(pos, target, up);
+    gpu->load_matrix(view);
 
-    windowWidth  = width;
-    windowHeight = height;
+    zabato::imgui::new_frame();
 
-    f32 aspectRatio = (f32)width / (f32)height;
-    glViewport(0, 0, width, height);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluPerspective(45.0f, aspectRatio, 0.1f, 10000.0f);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    gluLookAt(Camera::position[0],
-              Camera::position[1],
-              Camera::position[2],
-              Camera::target[0],
-              Camera::target[1],
-              Camera::target[2],
-              0.0f,
-              1.0f,
-              0.0f);
-}
-
-void UpdateImGui(float dt)
-{
-    ImGuiIO &io = ImGui::GetIO();
-
-    io.DeltaTime     = dt;
-    io.DisplaySize.x = float(windowWidth);
-    io.DisplaySize.y = float(windowHeight);
-    io.MousePos      = ImVec2((float)mouseX, (float)mouseY + 8);
-    io.MouseDown[0]  = mouseLeftDown;
-    io.MouseDown[1]  = mouseRightDown;
-
-    // Start the frame
-    ImGui::NewFrame();
-}
-
-// In main.cpp
-void UpdateScene(f32 time);
-
-void DisplayLoop(void)
-{
-    i32 w = glutGet(GLUT_WINDOW_WIDTH);
-    Reshape(w, glutGet(GLUT_WINDOW_HEIGHT));
-
-    UpdateImGui(1.0f / 60.0f);
-
-    ImGui::SetNewWindowDefaultPos(ImVec2(float(w - 300 - 30), 30));
-    ImGui::Begin("q3Scene Settings", NULL, ImVec2(300, 225));
+    ImGui::SetNextWindowPos(ImVec2(float(w - 300 - 30), 30),
+                            ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(300, 225), ImGuiCond_FirstUseEver);
+    ImGui::Begin("q3Scene Settings", NULL, 0);
     ImGui::Combo(
         "Demo", &currentDemo, "Drop Boxes\0Ray Push\0Box Stack\0Test\0");
     ImGui::Checkbox("Pause", &paused);
@@ -422,19 +315,7 @@ void DisplayLoop(void)
     }
     ImGui::End();
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    scene.Render(&renderer);
-
-    demos[currentDemo]->Render(&renderer);
-
-    ImGui::Render();
-
-    glutSwapBuffers();
-}
-
-void MainLoop(void)
-{
+    // Switch demo if needed
     if (currentDemo != lastDemo)
     {
         demos[lastDemo]->Shutdown();
@@ -442,153 +323,59 @@ void MainLoop(void)
         lastDemo = currentDemo;
     }
 
-    f32 time = g_clock.Start();
+    gpu->clear({0.0f, 0.0f, 0.0f, 0.0f}, 1.0f);
 
-    scene.SetAllowSleep(enableSleep);
-    scene.SetEnableFriction(enableFriction);
-    scene.SetIterations(velocityIterations);
+    scene.Render(&renderer);
 
-    UpdateScene(time);
+    demos[currentDemo]->Render(&renderer);
 
-    g_clock.Stop();
+    ImGui::Render();
+    zabato::imgui::render_draw_data(ImGui::GetDrawData());
 
-    glutPostRedisplay();
+    win->swap_buffers();
 }
 
-void InitImGui()
+void InitDemo(zabato::window *win, zabato::gpu *gpu)
 {
-    int w = glutGet(GLUT_WINDOW_WIDTH);
-    int h = glutGet(GLUT_WINDOW_HEIGHT);
+    renderer.SetGPU(gpu);
 
-    ImGuiIO &io    = ImGui::GetIO();
-    io.DisplaySize = ImVec2(
-        (float)w,
-        (float)h); // Display size, in pixels. For clamping windows positions.
-    io.DeltaTime =
-        1.0f / 60.0f; // Time elapsed since last frame, in seconds (in this
-                      // sample app we'll override this every frame because our
-                      // timestep is variable)
-    io.PixelCenterOffset    = 0.0f; // Align OpenGL texels
-    io.KeyMap[ImGuiKey_Tab] = 9;    // Keyboard mapping. ImGui will use those
-                                 // indices to peek into the io.KeyDown[] array.
-    io.KeyMap[ImGuiKey_LeftArrow]  = GLUT_KEY_LEFT;
-    io.KeyMap[ImGuiKey_RightArrow] = GLUT_KEY_RIGHT;
-    io.KeyMap[ImGuiKey_UpArrow]    = GLUT_KEY_UP;
-    io.KeyMap[ImGuiKey_DownArrow]  = GLUT_KEY_DOWN;
-    io.KeyMap[ImGuiKey_Home]       = GLUT_KEY_HOME;
-    io.KeyMap[ImGuiKey_End]        = GLUT_KEY_END;
-    io.KeyMap[ImGuiKey_Delete]     = 127;
-    io.KeyMap[ImGuiKey_Backspace]  = 8;
-    io.KeyMap[ImGuiKey_Enter]      = 13;
-    io.KeyMap[ImGuiKey_Escape]     = 27;
-    io.KeyMap[ImGuiKey_A]          = 'a';
-    io.KeyMap[ImGuiKey_C]          = 'c';
-    io.KeyMap[ImGuiKey_V]          = 'v';
-    io.KeyMap[ImGuiKey_X]          = 'x';
-    io.KeyMap[ImGuiKey_Y]          = 'y';
-    io.KeyMap[ImGuiKey_Z]          = 'z';
+    if (!g_whiteTex)
+    {
+        g_whiteTex = gpu->create_texture(1, 1, zabato::color_format::rgba4444);
+        uint32_t white = 0xFFFF;
+        g_whiteTex->load(
+            1, 1, zabato::color_format::rgba4444, sizeof(white), &white);
+    }
 
-    io.RenderDrawListsFn = ImImpl_RenderDrawLists;
-    // io.SetClipboardTextFn = ImImpl_SetClipboardTextFn;
-    // io.GetClipboardTextFn = ImImpl_GetClipboardTextFn;
+    gpu->enable_depth_test(true);
+    gpu->enable_blend(true);
+    gpu->set_blend_func(zabato::blend_factor::src_alpha,
+                        zabato::blend_factor::one_minus_src_alpha);
 
-    glGenTextures(1, &fontTex);
-    glBindTexture(GL_TEXTURE_2D, fontTex);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    zabato::light l;
+    l.type     = zabato::light_type::point;
+    l.ambient  = {Light::ambient[0],
+                  Light::ambient[1],
+                  Light::ambient[2],
+                  Light::ambient[3]};
+    l.diffuse  = {Light::diffuse[0],
+                  Light::diffuse[1],
+                  Light::diffuse[2],
+                  Light::diffuse[3]};
+    l.specular = {Light::specular[0],
+                  Light::specular[1],
+                  Light::specular[2],
+                  Light::specular[3]};
+    l.position = {
+        Camera::position[0], Camera::position[1], Camera::position[2]};
 
-    // Default font (embedded in code)
-    const void *png_data;
-    unsigned int png_size;
-    ImGui::GetDefaultFontData(NULL, NULL, &png_data, &png_size);
-    int tex_x, tex_y, tex_comp;
-    void *tex_data = stbi_load_from_memory((const unsigned char *)png_data,
-                                           (int)png_size,
-                                           &tex_x,
-                                           &tex_y,
-                                           &tex_comp,
-                                           0);
-    IM_ASSERT(tex_data != NULL);
+    l.spot_cutoff           = 180.0f;
+    l.constant_attenuation  = 1.0f;
+    l.linear_attenuation    = 0.0f;
+    l.quadratic_attenuation = 0.0f;
 
-    glTexImage2D(GL_TEXTURE_2D,
-                 0,
-                 GL_RGBA,
-                 tex_x,
-                 tex_y,
-                 0,
-                 GL_RGBA,
-                 GL_UNSIGNED_BYTE,
-                 tex_data);
-    stbi_image_free(tex_data);
-
-    // Disable usage of .ini file
-    ImGui::GetIO().IniSavingRate = -1.0f;
-}
-
-int InitApp(int argc, char **argv)
-{
-    // Starting width / height of the window
-    const u32 kWindowWidth  = 1000;
-    const u32 kWindowHeight = 600;
-
-    // Initialize GLUT
-    glutInit(&argc, argv);
-
-    // Get how big our screen is that we're displaying the window on
-    int screenWidth  = glutGet(GLUT_SCREEN_WIDTH);
-    int screenHeight = glutGet(GLUT_SCREEN_HEIGHT);
-
-    // Initialize the display mode to utilize double buffering, 4-channel
-    // framebuffer and depth buffer
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH | GLUT_STENCIL);
-
-    // Setup the window
-    glutInitWindowSize(kWindowWidth, kWindowHeight);
-    glutInitWindowPosition((screenWidth - kWindowWidth) / 2,
-                           (screenHeight - kWindowHeight) / 2);
-    glutCreateWindow("qu3e Physics by Randy Gaul");
-
-    glutDisplayFunc(DisplayLoop);
-    glutReshapeFunc(Reshape);
-    glutKeyboardUpFunc(KeyboardUp);
-    glutKeyboardFunc(Keyboard);
-    glutMouseFunc(Mouse);
-    glutMotionFunc(MouseMotion);
-    glutPassiveMotionFunc(MouseMotion);
-    glutIdleFunc(MainLoop);
-
-    // Setup all the open-gl states we want to use (ones that don't change in
-    // the lifetime of the application) Note: These can be changed anywhere, but
-    // generally we don't change the back buffer color
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    glEnable(GL_CULL_FACE);
-    glEnable(GL_DEPTH_TEST);
-    glCullFace(GL_BACK);
-    glFrontFace(GL_CCW);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_BLEND);
-
-    // Show the window that we just initailized
-    glutShowWindow();
-
-    // Used FFP to setup lights
-    float floats[4];
-    for (i32 i = 0; i < 4; ++i)
-        floats[i] = (float)Light::ambient[i];
-    glLightfv(GL_LIGHT0, GL_AMBIENT, floats);
-    for (i32 i = 0; i < 4; ++i)
-        floats[i] = (float)Light::diffuse[i];
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, floats);
-    for (i32 i = 0; i < 4; ++i)
-        floats[i] = (float)Light::specular[i];
-    glLightfv(GL_LIGHT0, GL_SPECULAR, floats);
-    for (i32 i = 0; i < 3; ++i)
-        floats[i] = (float)Camera::position[i];
-    floats[3] = 1.0f;
-    glLightfv(GL_LIGHT0, GL_POSITION, floats);
-    glEnable(GL_LIGHT0);
-    glEnable(GL_COLOR_MATERIAL);
-    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+    gpu->set_light(0, &l);
+    gpu->enable_lighting(true);
 
     demos[0]    = new DropBoxes();
     demos[1]    = new RayPush();
@@ -599,8 +386,41 @@ int InitApp(int argc, char **argv)
     demos[currentDemo]->Init();
     sprintf(sceneFileName, "q3dump.txt");
 
-    InitImGui();
-    glutMainLoop();
+    win->add_key_callback(OnKey);
+    win->add_mouse_button_callback(OnMouseButton);
+    win->add_cursor_pos_callback(OnCursorPos);
+}
 
-    return 0;
+void UpdateFrame(float time)
+{
+    // Set scene settings
+    scene.SetAllowSleep(enableSleep);
+    scene.SetEnableFriction(enableFriction);
+    scene.SetIterations(velocityIterations);
+
+    // Physics Step Logic
+    static f32 accumulator = 0;
+    accumulator += time;
+
+    accumulator = q3Clamp01(accumulator);
+    while (accumulator >= dt)
+    {
+        if (!paused)
+        {
+            scene.Step();
+            demos[currentDemo]->Update();
+        }
+
+        else
+        {
+            if (singleStep)
+            {
+                scene.Step();
+                demos[currentDemo]->Update();
+                singleStep = false;
+            }
+        }
+
+        accumulator -= dt;
+    }
 }
