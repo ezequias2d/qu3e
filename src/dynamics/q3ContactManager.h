@@ -2,9 +2,10 @@
 /**
 @file	q3ContactManager.h
 
-@author	Randy Gaul
-@date	10/10/2014
+@author Randy Gaul, Ezequias Silva
+@date   19/12/2025
 Copyright (c) 2014 Randy Gaul http://www.randygaul.net
+Copyright (c) 2025 Ezequias Silva https://github.com/ezequias2d
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -35,7 +36,7 @@ freely, subject to the following restrictions:
 //------------------------------------------------------------------------------
 struct q3ContactConstraint;
 class q3ContactListener;
-struct q3Box;
+struct q3Shape;
 class q3Body;
 class q3Render;
 class q3Stack;
@@ -47,7 +48,7 @@ public:
 
     // Add a new contact constraint for a pair of objects
     // unless the contact constraint already exists
-    void AddContact(q3Box *A, q3Box *B);
+    void AddContact(q3Shape *A, q3Shape *B);
 
     // Has broadphase find all contacts and call AddContact on the
     // ContactManager for each pair found
@@ -77,7 +78,6 @@ private:
 
     friend class q3BroadPhase;
     friend class q3Scene;
-    friend struct q3Box;
     friend class q3Body;
 };
 

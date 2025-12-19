@@ -1,4 +1,5 @@
 Copyright (c) 2014 Randy Gaul http://www.randygaul.net
+Copyright (c) 2025 Ezequias Silva https://github.com/ezequias2d
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages

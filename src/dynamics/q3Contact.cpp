@@ -2,9 +2,10 @@
 /**
 @file	q3Contact.cpp
 
-@author	Randy Gaul
-@date	10/10/2014
+@author Randy Gaul, Ezequias Silva
+@date   19/12/2025
 Copyright (c) 2014 Randy Gaul http://www.randygaul.net
+Copyright (c) 2025 Ezequias Silva https://github.com/ezequias2d
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -24,11 +25,12 @@ freely, subject to the following restrictions:
 //------------------------------------------------------------------------------
 
 #include "q3Contact.h"
+#include "../collision/q3Shape.h"
 
 //------------------------------------------------------------------------------
 // q3Contact
 //------------------------------------------------------------------------------
-void q3Manifold::SetPair(q3Box *a, q3Box *b)
+void q3Manifold::SetPair(q3Shape *a, q3Shape *b)
 {
     A = a;
     B = b;
@@ -41,7 +43,25 @@ void q3ContactConstraint::SolveCollision(void)
 {
     manifold.contactCount = 0;
 
-    q3BoxtoBox(&manifold, A, B);
+    q3ShapeType typeA = A->m_type;
+    q3ShapeType typeB = B->m_type;
+
+    if (typeA == eBox && typeB == eBox)
+    {
+        q3BoxtoBox(&manifold, (q3Box *)A, (q3Box *)B);
+    }
+    else if (typeA == eSphere && typeB == eSphere)
+    {
+        q3SphereToSphere(&manifold, (q3Sphere *)A, (q3Sphere *)B);
+    }
+    else if (typeA == eSphere && typeB == eBox)
+    {
+        q3SphereToBox(&manifold, (q3Sphere *)A, (q3Box *)B);
+    }
+    else if (typeA == eBox && typeB == eSphere)
+    {
+        q3BoxToSphere(&manifold, (q3Box *)A, (q3Sphere *)B);
+    }
 
     if (manifold.contactCount > 0)
     {

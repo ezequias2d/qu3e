@@ -2,9 +2,10 @@
 /**
 @file	q3Collide.h
 
-@author	Randy Gaul
-@date	10/10/2014
+@author Randy Gaul, Ezequias Silva
+@date   19/12/2025
 Copyright (c) 2014 Randy Gaul http://www.randygaul.net
+Copyright (c) 2025 Ezequias Silva https://github.com/ezequias2d
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -27,6 +28,7 @@ freely, subject to the following restrictions:
 #define Q3COLLIDE_H
 
 #include "q3Box.h"
+#include "q3Sphere.h"
 
 //------------------------------------------------------------------------------
 // q3Collide
@@ -34,5 +36,8 @@ freely, subject to the following restrictions:
 struct q3Manifold;
 
 void q3BoxtoBox(q3Manifold *m, q3Box *a, q3Box *b);
+void q3SphereToSphere(q3Manifold *m, q3Sphere *a, q3Sphere *b);
+void q3SphereToBox(q3Manifold *m, q3Sphere *a, q3Box *b);
+void q3BoxToSphere(q3Manifold *m, q3Box *a, q3Sphere *b);
 
 #endif // Q3COLLIDE_H

@@ -1,10 +1,9 @@
 //------------------------------------------------------------------------------
 /**
-@file	Test.h
+@file	SphereStack.h
 
-@author Randy Gaul, Ezequias Silva
+@author Ezequias Silva
 @date   19/12/2025
-Copyright (c) 2014 Randy Gaul http://www.randygaul.net
 Copyright (c) 2025 Ezequias Silva https://github.com/ezequias2d
 
 This software is provided 'as-is', without any express or implied
@@ -24,12 +23,19 @@ freely, subject to the following restrictions:
 */
 //------------------------------------------------------------------------------
 
-struct Test : public Demo
+#ifndef SPHERESTACK_H
+#define SPHERESTACK_H
+
+#include "Demo.h"
+
+struct SphereStack : public Demo
 {
     virtual void Init()
     {
+        // Create the floor
         q3BodyDef bodyDef;
         q3Body *body = scene.CreateBody(bodyDef);
+
         q3BoxDef boxDef;
         boxDef.SetRestitution(0);
         q3Transform tx;
@@ -38,17 +44,29 @@ struct Test : public Demo
         body->AddBox(boxDef);
 
         bodyDef.bodyType = eDynamicBody;
-        bodyDef.position = {0, 5.0f, 0};
-        body             = scene.CreateBody(bodyDef);
-        for (int i = 0; i < 20; ++i)
+
+        q3SphereDef sphereDef;
+        sphereDef.radius = 1.0f;
+        sphereDef.SetRestitution(0.5f);
+        sphereDef.SetDensity(1.0f);
+
+        for (i32 i = 0; i < 3; ++i)
         {
-            tx.position = {q3RandomFloat(1.0f, 10.0f),
-                           q3RandomFloat(1.0f, 10.0f),
-                           q3RandomFloat(1.0f, 10.0f)};
-            boxDef.Set(tx, q3Vec3(1.0f, 1.0f, 1.0f));
-            body->AddBox(boxDef);
+            for (i32 j = 0; j < 3; ++j)
+            {
+                for (i32 k = 0; k < 3; ++k)
+                {
+                    bodyDef.position = {r32(2.0) + r32(1.0) * j,
+                                        r32(1.0) * r32(i) + r32(5.0),
+                                        r32(2.0) + r32(1.0) * r32(k)};
+                    body             = scene.CreateBody(bodyDef);
+                    body->AddSphere(sphereDef);
+                }
+            }
         }
     }
 
     virtual void Shutdown() { scene.RemoveAllBodies(); }
 };
+
+#endif // SPHERESTACK_H

@@ -2,9 +2,10 @@
 /**
 @file	q3BroadPhase.cpp
 
-@author	Randy Gaul
-@date	10/10/2014
+@author Randy Gaul, Ezequias Silva
+@date   19/12/2025
 Copyright (c) 2014 Randy Gaul http://www.randygaul.net
+Copyright (c) 2025 Ezequias Silva https://github.com/ezequias2d
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -24,7 +25,7 @@ freely, subject to the following restrictions:
 //------------------------------------------------------------------------------
 
 #include "q3BroadPhase.h"
-#include "../collision/q3Box.h"
+#include "../collision/q3Shape.h"
 #include "../common/q3Geometry.h"
 #include "../dynamics/q3ContactManager.h"
 
@@ -53,17 +54,18 @@ q3BroadPhase::~q3BroadPhase()
 }
 
 //------------------------------------------------------------------------------
-void q3BroadPhase::InsertBox(q3Box *box, const q3AABB &aabb)
+void q3BroadPhase::InsertShape(q3Shape *shape, const q3AABB &aabb)
 {
-    i32 id               = m_tree.Insert(aabb, box);
-    box->broadPhaseIndex = id;
+    i32 id                 = m_tree.Insert(aabb, shape);
+    shape->broadPhaseIndex = id;
     BufferMove(id);
 }
 
 //------------------------------------------------------------------------------
-void q3BroadPhase::RemoveBox(const q3Box *box)
+//------------------------------------------------------------------------------
+void q3BroadPhase::RemoveShape(const q3Shape *shape)
 {
-    m_tree.Remove(box->broadPhaseIndex);
+    m_tree.Remove(shape->broadPhaseIndex);
 }
 
 //------------------------------------------------------------------------------
@@ -110,8 +112,8 @@ void q3BroadPhase::UpdatePairs()
         {
             // Add contact to manager
             q3ContactPair *pair = m_pairBuffer + i;
-            q3Box *A            = (q3Box *)m_tree.GetUserData(pair->A);
-            q3Box *B            = (q3Box *)m_tree.GetUserData(pair->B);
+            q3Shape *A          = (q3Shape *)m_tree.GetUserData(pair->A);
+            q3Shape *B          = (q3Shape *)m_tree.GetUserData(pair->B);
             m_manager->AddContact(A, B);
 
             ++i;

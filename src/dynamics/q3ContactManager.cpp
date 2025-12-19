@@ -2,9 +2,10 @@
 /**
 @file	q3ContactManager.cpp
 
-@author	Randy Gaul
-@date	10/10/2014
+@author Randy Gaul, Ezequias Silva
+@date   19/12/2025
 Copyright (c) 2014 Randy Gaul http://www.randygaul.net
+Copyright (c) 2025 Ezequias Silva https://github.com/ezequias2d
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -24,7 +25,7 @@ freely, subject to the following restrictions:
 //------------------------------------------------------------------------------
 
 #include "q3ContactManager.h"
-#include "../collision/q3Box.h"
+#include "../collision/q3Shape.h"
 #include "../debug/q3Render.h"
 #include "../scene/q3Scene.h"
 #include "q3Body.h"
@@ -43,7 +44,7 @@ q3ContactManager::q3ContactManager(q3Stack *stack)
 }
 
 //------------------------------------------------------------------------------
-void q3ContactManager::AddContact(q3Box *A, q3Box *B)
+void q3ContactManager::AddContact(q3Shape *A, q3Shape *B)
 {
     q3Body *bodyA = A->body;
     q3Body *bodyB = B->body;
@@ -58,8 +59,8 @@ void q3ContactManager::AddContact(q3Box *A, q3Box *B)
     {
         if (edge->other == bodyB)
         {
-            q3Box *shapeA = edge->constraint->A;
-            q3Box *shapeB = edge->constraint->B;
+            q3Shape *shapeA = edge->constraint->A;
+            q3Shape *shapeB = edge->constraint->B;
 
             // @TODO: Verify this against Box2D; not sure if this is all we need
             // here
@@ -181,12 +182,12 @@ void q3ContactManager::RemoveContactsFromBody(q3Body *body)
 //------------------------------------------------------------------------------
 void q3ContactManager::RemoveFromBroadphase(q3Body *body)
 {
-    q3Box *box = body->m_boxes;
+    q3Shape *shape = body->m_shapes;
 
-    while (box)
+    while (shape)
     {
-        m_broadphase.RemoveBox(box);
-        box = box->next;
+        m_broadphase.RemoveShape(shape);
+        shape = shape->next;
     }
 }
 
@@ -197,8 +198,8 @@ void q3ContactManager::TestCollisions(void)
 
     while (constraint)
     {
-        q3Box *A      = constraint->A;
-        q3Box *B      = constraint->B;
+        q3Shape *A    = constraint->A;
+        q3Shape *B    = constraint->B;
         q3Body *bodyA = A->body;
         q3Body *bodyB = B->body;
 

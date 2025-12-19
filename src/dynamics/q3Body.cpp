@@ -2,9 +2,10 @@
 /**
 @file	q3Body.cpp
 
-@author	Randy Gaul
-@date	10/10/2014
+@author Randy Gaul, Ezequias Silva
+@date   19/12/2025
 Copyright (c) 2014 Randy Gaul http://www.randygaul.net
+Copyright (c) 2025 Ezequias Silva https://github.com/ezequias2d
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -26,6 +27,7 @@ freely, subject to the following restrictions:
 #include "q3Body.h"
 #include "../broadphase/q3BroadPhase.h"
 #include "../collision/q3Box.h"
+#include "../collision/q3Sphere.h"
 #include "../scene/q3Scene.h"
 #include "q3Contact.h"
 
@@ -86,7 +88,7 @@ q3Body::q3Body(const q3BodyDef &def, q3Scene *scene)
     if (def.lockAxisZ)
         m_flags |= eLockAxisZ;
 
-    m_boxes       = NULL;
+    m_shapes      = NULL;
     m_contactList = NULL;
 }
 
@@ -94,11 +96,14 @@ q3Body::q3Body(const q3BodyDef &def, q3Scene *scene)
 const q3Box *q3Body::AddBox(const q3BoxDef &def)
 {
     q3AABB aabb;
-    q3Box *box = (q3Box *)m_scene->m_heap.Allocate(sizeof(q3Box));
-    box->local = def.m_tx;
-    box->e     = def.m_e;
-    box->next  = m_boxes;
-    m_boxes    = box;
+    q3Shape *shape = (q3Shape *)m_scene->m_heap.Allocate(sizeof(q3Box));
+    q3Box *box     = (q3Box *)shape;
+    new (box) q3Box();
+    box->m_type = eBox;
+    box->local  = def.m_tx;
+    box->e      = def.m_e;
+    box->next   = m_shapes;
+    m_shapes    = box;
     box->ComputeAABB(m_tx, &aabb);
 
     box->body        = this;
@@ -109,34 +114,62 @@ const q3Box *q3Body::AddBox(const q3BoxDef &def)
 
     CalculateMassData();
 
-    m_scene->m_contactManager.m_broadphase.InsertBox(box, aabb);
-    m_scene->m_newBox = true;
+    m_scene->m_contactManager.m_broadphase.InsertShape(box, aabb);
+    m_scene->m_newShape = true;
 
     return box;
 }
 
 //------------------------------------------------------------------------------
-void q3Body::RemoveBox(const q3Box *box)
+const q3Sphere *q3Body::AddSphere(const q3SphereDef &def)
 {
-    assert(box);
-    assert(box->body == this);
+    q3AABB aabb;
+    q3Shape *shape   = (q3Shape *)m_scene->m_heap.Allocate(sizeof(q3Sphere));
+    q3Sphere *sphere = (q3Sphere *)shape;
+    new (sphere) q3Sphere();
+    sphere->m_type = eSphere;
+    sphere->local  = def.local;
+    sphere->radius = def.radius;
+    sphere->next   = m_shapes;
+    m_shapes       = sphere;
+    sphere->ComputeAABB(m_tx, &aabb);
 
-    q3Box *node = m_boxes;
+    sphere->body        = this;
+    sphere->friction    = def.friction;
+    sphere->restitution = def.restitution;
+    sphere->density     = def.density;
+    sphere->sensor      = def.sensor;
+
+    CalculateMassData();
+
+    m_scene->m_contactManager.m_broadphase.InsertShape(sphere, aabb);
+    m_scene->m_newShape = true;
+
+    return sphere;
+}
+
+//------------------------------------------------------------------------------
+void q3Body::RemoveShape(q3Shape *shape)
+{
+    assert(shape);
+    assert(shape->body == this);
+
+    q3Shape *node = m_shapes;
 
     bool found = false;
-    if (node == box)
+    if (node == shape)
     {
-        m_boxes = node->next;
-        found   = true;
+        m_shapes = node->next;
+        found    = true;
     }
 
     else
     {
         while (node)
         {
-            if (node->next == box)
+            if (node->next == shape)
             {
-                node->next = box->next;
+                node->next = shape->next;
                 found      = true;
                 break;
             }
@@ -155,31 +188,31 @@ void q3Body::RemoveBox(const q3Box *box)
         q3ContactConstraint *contact = edge->constraint;
         edge                         = edge->next;
 
-        q3Box *A = contact->A;
-        q3Box *B = contact->B;
+        q3Shape *A = contact->A;
+        q3Shape *B = contact->B;
 
-        if (box == A || box == B)
+        if (shape == A || shape == B)
             m_scene->m_contactManager.RemoveContact(contact);
     }
 
-    m_scene->m_contactManager.m_broadphase.RemoveBox(box);
+    m_scene->m_contactManager.m_broadphase.RemoveShape(shape);
 
     CalculateMassData();
 
-    m_scene->m_heap.Free((void *)box);
+    m_scene->m_heap.Free((void *)shape);
 }
 
 //------------------------------------------------------------------------------
-void q3Body::RemoveAllBoxes()
+void q3Body::RemoveAllShapes()
 {
-    while (m_boxes)
+    while (m_shapes)
     {
-        q3Box *next = m_boxes->next;
+        q3Shape *next = m_shapes->next;
 
-        m_scene->m_contactManager.m_broadphase.RemoveBox(m_boxes);
-        m_scene->m_heap.Free((void *)m_boxes);
+        m_scene->m_contactManager.m_broadphase.RemoveShape(m_shapes);
+        m_scene->m_heap.Free((void *)m_shapes);
 
-        m_boxes = next;
+        m_shapes = next;
     }
 
     m_scene->m_contactManager.RemoveContactsFromBody(this);
@@ -396,13 +429,13 @@ r32 q3Body::GetAngularDamping(r32 damping) const { return m_angularDamping; }
 //------------------------------------------------------------------------------
 void q3Body::Render(q3Render *render) const
 {
-    bool awake = IsAwake();
-    q3Box *box = m_boxes;
+    bool awake     = IsAwake();
+    q3Shape *shape = m_shapes;
 
-    while (box)
+    while (shape)
     {
-        box->Render(m_tx, awake, render);
-        box = box->next;
+        shape->Render(m_tx, awake, render);
+        shape = shape->next;
     }
 }
 
@@ -464,59 +497,70 @@ void q3Body::Dump(FILE *file, i32 index) const
     fprintf(file, "\tbd.lockAxisZ = bool( %d );\n", m_flags & eLockAxisZ);
     fprintf(file, "\tbodies[ %d ] = scene.CreateBody( bd );\n\n", index);
 
-    q3Box *box = m_boxes;
+    q3Shape *shape = m_shapes;
 
-    while (box)
+    while (shape)
     {
-        fprintf(file, "\t{\n");
-        fprintf(file, "\t\tq3BoxDef sd;\n");
-        fprintf(file, "\t\tsd.SetFriction( r32( %.15lf ) );\n", box->friction);
-        fprintf(file,
-                "\t\tsd.SetRestitution( r32( %.15lf ) );\n",
-                box->restitution);
-        fprintf(file, "\t\tsd.SetDensity( r32( %.15lf ) );\n", box->density);
-        i32 sensor = (int)box->sensor;
-        fprintf(file, "\t\tsd.SetSensor( bool( %d ) );\n", sensor);
-        fprintf(file, "\t\tq3Transform boxTx;\n");
-        q3Transform boxTx = box->local;
-        q3Vec3 xAxis      = boxTx.rotation.col0;
-        q3Vec3 yAxis      = boxTx.rotation.col1;
-        q3Vec3 zAxis      = boxTx.rotation.col2;
-        fprintf(file,
+        if (shape->m_type == eBox)
+        {
+            q3Box *box = (q3Box *)shape;
+            fprintf(file, "\t{\n");
+            fprintf(file, "\t\tq3BoxDef sd;\n");
+            fprintf(
+                file, "\t\tsd.SetFriction( r32( %.15lf ) );\n", box->friction);
+            fprintf(file,
+                    "\t\tsd.SetRestitution( r32( %.15lf ) );\n",
+                    box->restitution);
+            fprintf(
+                file, "\t\tsd.SetDensity( r32( %.15lf ) );\n", box->density);
+            i32 sensor = (int)box->sensor;
+            fprintf(file, "\t\tsd.SetSensor( bool( %d ) );\n", sensor);
+            fprintf(file, "\t\tq3Transform boxTx;\n");
+            q3Transform boxTx = box->local;
+            q3Vec3 xAxis      = boxTx.rotation.col0;
+            q3Vec3 yAxis      = boxTx.rotation.col1;
+            q3Vec3 zAxis      = boxTx.rotation.col2;
+            fprintf(
+                file,
                 "\t\tq3Vec3 xAxis( r32( %.15lf ), r32( %.15lf ), r32( %.15lf ) "
                 ");\n",
                 xAxis.x,
                 xAxis.y,
                 xAxis.z);
-        fprintf(file,
+            fprintf(
+                file,
                 "\t\tq3Vec3 yAxis( r32( %.15lf ), r32( %.15lf ), r32( %.15lf ) "
                 ");\n",
                 yAxis.x,
                 yAxis.y,
                 yAxis.z);
-        fprintf(file,
+            fprintf(
+                file,
                 "\t\tq3Vec3 zAxis( r32( %.15lf ), r32( %.15lf ), r32( %.15lf ) "
                 ");\n",
                 zAxis.x,
                 zAxis.y,
                 zAxis.z);
-        fprintf(file,
-                "\t\tboxTx.rotation.SetColumns( xAxis, yAxis, zAxis );\n");
-        fprintf(file,
+            fprintf(file,
+                    "\t\tboxTx.rotation.SetColumns( xAxis, yAxis, zAxis );\n");
+            fprintf(
+                file,
                 "\t\tboxTx.position.Set( r32( %.15lf ), r32( %.15lf ), r32( "
                 "%.15lf ) );\n",
                 boxTx.position.x,
                 boxTx.position.y,
                 boxTx.position.z);
-        fprintf(file,
+            fprintf(
+                file,
                 "\t\tsd.Set( boxTx, q3Vec3( r32( %.15lf ), r32( %.15lf ), r32( "
                 "%.15lf ) ) );\n",
                 box->e.x * 2.0f,
                 box->e.y * 2.0f,
                 box->e.z * 2.0f);
-        fprintf(file, "\t\tbodies[ %d ]->AddBox( sd );\n", index);
-        fprintf(file, "\t}\n");
-        box = box->next;
+            fprintf(file, "\t\tbodies[ %d ]->AddBox( sd );\n", index);
+            fprintf(file, "\t}\n");
+        }
+        shape = shape->next;
     }
 
     fprintf(file, "}\n\n");
@@ -542,13 +586,13 @@ void q3Body::CalculateMassData()
     q3Vec3 lc;
     q3Identity(lc);
 
-    for (q3Box *box = m_boxes; box; box = box->next)
+    for (q3Shape *shape = m_shapes; shape; shape = shape->next)
     {
-        if (box->density == r32(0.0))
+        if (shape->density == r32(0.0))
             continue;
 
         q3MassData md;
-        box->ComputeMass(&md);
+        shape->ComputeMass(&md);
         mass += md.mass;
         inertia += md.inertia;
         lc += md.center * md.mass;
@@ -595,11 +639,11 @@ void q3Body::SynchronizeProxies()
     q3AABB aabb;
     q3Transform tx = m_tx;
 
-    q3Box *box = m_boxes;
-    while (box)
+    q3Shape *shape = m_shapes;
+    while (shape)
     {
-        box->ComputeAABB(tx, &aabb);
-        broadphase->Update(box->broadPhaseIndex, aabb);
-        box = box->next;
+        shape->ComputeAABB(tx, &aabb);
+        broadphase->Update(shape->broadPhaseIndex, aabb);
+        shape = shape->next;
     }
 }

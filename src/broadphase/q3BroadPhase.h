@@ -2,9 +2,10 @@
 /**
 @file	q3BroadPhase.h
 
-@author	Randy Gaul
-@date	10/10/2014
+@author Randy Gaul, Ezequias Silva
+@date   19/12/2025
 Copyright (c) 2014 Randy Gaul http://www.randygaul.net
+Copyright (c) 2025 Ezequias Silva https://github.com/ezequias2d
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -34,7 +35,7 @@ freely, subject to the following restrictions:
 // q3BroadPhase
 //------------------------------------------------------------------------------
 class q3ContactManager;
-struct q3Box;
+struct q3Shape;
 struct q3Transform;
 struct q3AABB;
 
@@ -50,8 +51,8 @@ public:
     q3BroadPhase(q3ContactManager *manager);
     ~q3BroadPhase();
 
-    void InsertBox(q3Box *shape, const q3AABB &aabb);
-    void RemoveBox(const q3Box *shape);
+    void InsertShape(q3Shape *shape, const q3AABB &aabb);
+    void RemoveShape(const q3Shape *shape);
 
     // Generates the contact list. All previous contacts are returned to the
     // allocator before generation occurs.

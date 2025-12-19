@@ -2,8 +2,10 @@
 /**
 @file	q3.h
 
-@author	Randy Gaul
-@date	10/10/2014
+@author Randy Gaul, Ezequias Silva
+@date   19/12/2025
+Copyright (c) 2014 Randy Gaul http://www.randygaul.net
+Copyright (c) 2025 Ezequias Silva https://github.com/ezequias2d
 
         Copyright (c) 2014 Randy Gaul http://www.randygaul.net
 
@@ -29,6 +31,7 @@ distribution.
 #define Q3_H
 
 #include "collision/q3Box.h"
+#include "collision/q3Sphere.h"
 #include "common/q3Types.h"
 #include "debug/q3Render.h"
 #include "dynamics/q3Body.h"

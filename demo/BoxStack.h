@@ -2,9 +2,10 @@
 /**
 @file	DropBoxes.h
 
-@author	Randy Gaul
-@date	11/25/2014
+@author Randy Gaul, Ezequias Silva
+@date   19/12/2025
 Copyright (c) 2014 Randy Gaul http://www.randygaul.net
+Copyright (c) 2025 Ezequias Silva https://github.com/ezequias2d
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -63,9 +64,10 @@ struct BoxStack : public Demo
             {
                 for (i32 k = 0; k < 10; ++k)
                 {
-                    bodyDef.position.Set(
-                        -16.0f + 1.0f * j, 1.0f * i + 5.0f, -16.0f + 1.0f * k);
-                    body = scene.CreateBody(bodyDef);
+                    bodyDef.position = {r32(-16.0) + r32(1.0) * j,
+                                        r32(1.0) * r32(i) + r32(5.0),
+                                        r32(-16.0) + r32(1.0) * r32(k)};
+                    body             = scene.CreateBody(bodyDef);
                     body->AddBox(boxDef);
                 }
             }

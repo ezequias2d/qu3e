@@ -1,10 +1,9 @@
 //------------------------------------------------------------------------------
 /**
-@file	q3Box.h
+@file	q3Shape.h
 
-@author Randy Gaul, Ezequias Silva
+@author Ezequias Silva
 @date   19/12/2025
-Copyright (c) 2014 Randy Gaul http://www.randygaul.net
 Copyright (c) 2025 Ezequias Silva https://github.com/ezequias2d
 
 This software is provided 'as-is', without any express or implied
@@ -24,65 +23,55 @@ freely, subject to the following restrictions:
 */
 //------------------------------------------------------------------------------
 
-#ifndef Q3BOX_H
-#define Q3BOX_H
+#ifndef Q3SHAPE_H
+#define Q3SHAPE_H
 
-#include "../debug/q3Render.h"
-#include "../math/q3Mat3.h"
+#include "../common/q3Types.h"
 #include "../math/q3Transform.h"
-#include "../math/q3Vec3.h"
-#include "q3Shape.h"
+
+struct q3AABB;
+struct q3RaycastData;
+class q3Render;
 
 //------------------------------------------------------------------------------
-// q3Box
+// q3MassData
 //------------------------------------------------------------------------------
-struct q3Box : public q3Shape
+struct q3MassData
 {
-    q3Transform local;
-    q3Vec3 e; // extent, as in the extent of each OBB axis
-
-    bool TestPoint(const q3Transform &tx, const q3Vec3 &p) const override;
-    bool Raycast(const q3Transform &tx, q3RaycastData *raycast) const override;
-    void ComputeAABB(const q3Transform &tx, q3AABB *aabb) const override;
-    void ComputeMass(q3MassData *md) const override;
-    void
-    Render(const q3Transform &tx, bool awake, q3Render *render) const override;
+    q3Mat3 inertia;
+    q3Vec3 center;
+    r32 mass;
 };
 
 //------------------------------------------------------------------------------
-// q3BoxDef
+// q3Shape
 //------------------------------------------------------------------------------
-class q3BoxDef
+struct q3Shape
 {
-public:
-    q3BoxDef()
-    {
-        // Common default values
-        m_friction    = r32(0.4);
-        m_restitution = r32(0.2);
-        m_density     = r32(1.0);
-        m_sensor      = false;
-    }
+    q3ShapeType m_type;
+    class q3Body *body;
+    q3Shape *next;
 
-    void Set(const q3Transform &tx, const q3Vec3 &extents);
+    r32 friction;
+    r32 restitution;
+    r32 density;
+    i32 broadPhaseIndex;
+    mutable void *userData;
+    mutable bool sensor;
 
-    void SetFriction(r32 friction);
-    void SetRestitution(r32 restitution);
-    void SetDensity(r32 density);
-    void SetSensor(bool sensor);
+    virtual void SetUserdata(void *data) const { userData = data; };
+    virtual void *GetUserdata() const { return userData; };
+    virtual void SetSensor(bool isSensor) { sensor = isSensor; };
 
-private:
-    q3Transform m_tx;
-    q3Vec3 m_e;
+    virtual bool TestPoint(const q3Transform &tx, const q3Vec3 &p) const = 0;
+    virtual bool Raycast(const q3Transform &tx,
+                         q3RaycastData *raycast) const                   = 0;
+    virtual void ComputeAABB(const q3Transform &tx, q3AABB *aabb) const  = 0;
+    virtual void ComputeMass(q3MassData *md) const                       = 0;
+    virtual void
+    Render(const q3Transform &tx, bool awake, q3Render *render) const = 0;
 
-    r32 m_friction;
-    r32 m_restitution;
-    r32 m_density;
-    bool m_sensor;
-
-    friend class q3Body;
+    virtual ~q3Shape() {}
 };
 
-#include "q3Box.inl"
-
-#endif // Q3BOX_H
+#endif // Q3SHAPE_H

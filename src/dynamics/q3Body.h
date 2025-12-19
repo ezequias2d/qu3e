@@ -2,9 +2,10 @@
 /**
 @file	q3Body.h
 
-@author	Randy Gaul
-@date	10/10/2014
+@author Randy Gaul, Ezequias Silva
+@date   19/12/2025
 Copyright (c) 2014 Randy Gaul http://www.randygaul.net
+Copyright (c) 2025 Ezequias Silva https://github.com/ezequias2d
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -40,6 +41,10 @@ class q3BoxDef;
 struct q3ContactEdge;
 class q3Render;
 struct q3Box;
+class q3BoxDef;
+struct q3Sphere;
+struct q3SphereDef;
+struct q3Shape;
 
 enum q3BodyType
 {
@@ -56,14 +61,15 @@ public:
     // another. The body will recalculate its mass values. No contacts
     // will be created until the next q3Scene::Step( ) call.
     const q3Box *AddBox(const q3BoxDef &def);
+    const q3Sphere *AddSphere(const q3SphereDef &def);
 
-    // Removes this box from the body and broadphase. Forces the body
+    // Removes this shape from the body and broadphase. Forces the body
     // to recompute its mass if the body is dynamic. Frees the memory
-    // pointed to by the box pointer.
-    void RemoveBox(const q3Box *box);
+    // pointed to by the shape pointer.
+    void RemoveShape(q3Shape *shape);
 
-    // Removes all boxes from this body and the broadphase.
-    void RemoveAllBoxes();
+    // Removes all shapes from this body and the broadphase.
+    void RemoveAllShapes();
 
     void ApplyLinearForce(const q3Vec3 &force);
     void ApplyForceAtWorldPoint(const q3Vec3 &force, const q3Vec3 &point);
@@ -148,7 +154,7 @@ private:
     i32 m_layers;
     i32 m_flags;
 
-    q3Box *m_boxes;
+    q3Shape *m_shapes;
     void *m_userData;
     q3Scene *m_scene;
     q3Body *m_next;

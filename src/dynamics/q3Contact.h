@@ -2,9 +2,10 @@
 /**
 @file	q3Contact.h
 
-@author	Randy Gaul
-@date	10/10/2014
+@author Randy Gaul, Ezequias Silva
+@date   19/12/2025
 Copyright (c) 2014 Randy Gaul http://www.randygaul.net
+Copyright (c) 2025 Ezequias Silva https://github.com/ezequias2d
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -26,8 +27,8 @@ freely, subject to the following restrictions:
 #ifndef Q3CONTACT_H
 #define Q3CONTACT_H
 
-#include "../collision/q3Box.h"
 #include "../collision/q3Collide.h"
+#include "../collision/q3Shape.h"
 #include "../common/q3Settings.h"
 #include "../math/q3Math.h"
 
@@ -35,19 +36,19 @@ freely, subject to the following restrictions:
 // q3Contact
 //------------------------------------------------------------------------------
 class q3Body;
-struct q3Box;
+struct q3Shape;
 struct q3ContactConstraint;
 
 // Restitution mixing. The idea is to use the maximum bounciness, so bouncy
 // objects will never not bounce during collisions.
-inline r32 q3MixRestitution(const q3Box *A, const q3Box *B)
+inline r32 q3MixRestitution(const q3Shape *A, const q3Shape *B)
 {
     return q3Max(A->restitution, B->restitution);
 }
 
 // Friction mixing. The idea is to allow a very low friction value to
 // drive down the mixing result. Example: anything slides on ice.
-inline r32 q3MixFriction(const q3Box *A, const q3Box *B)
+inline r32 q3MixFriction(const q3Shape *A, const q3Shape *B)
 {
     return sqrt(A->friction * B->friction);
 }
@@ -92,10 +93,10 @@ struct q3Contact
 
 struct q3Manifold
 {
-    void SetPair(q3Box *a, q3Box *b);
+    void SetPair(q3Shape *a, q3Shape *b);
 
-    q3Box *A;
-    q3Box *B;
+    q3Shape *A;
+    q3Shape *B;
 
     q3Vec3 normal;            // From A to B
     q3Vec3 tangentVectors[2]; // Tangent vectors
@@ -120,7 +121,7 @@ struct q3ContactConstraint
 {
     void SolveCollision(void);
 
-    q3Box *A, *B;
+    q3Shape *A, *B;
     q3Body *bodyA, *bodyB;
 
     q3ContactEdge edgeA;

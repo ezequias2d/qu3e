@@ -2,9 +2,10 @@
 /**
 @file	Demo.cpp
 
-@author	Randy Gaul
-@date	11/25/2014
+@author Randy Gaul, Ezequias Silva
+@date   19/12/2025
 Copyright (c) 2014 Randy Gaul http://www.randygaul.net
+Copyright (c) 2025 Ezequias Silva https://github.com/ezequias2d
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -30,7 +31,9 @@ freely, subject to the following restrictions:
 
 #include "BoxStack.h"
 #include "DropBoxes.h"
+#include "DropShapes.h"
 #include "RayPush.h"
+#include "SphereStack.h"
 #include "Test.h"
 
 float dt = 1.0f / 60.0f;
@@ -128,6 +131,45 @@ public:
             m_gpu->end();
         }
     };
+
+    void Sphere() override
+    {
+        if (m_gpu)
+        {
+            // m_gpu->enable_depth_test(false);
+            m_gpu->begin(zabato::primitive_type::lines);
+
+            const int kSegs = 20;
+            const float kPi = 3.14159265f;
+            float angleStep = kPi * 2.0f / (float)kSegs;
+
+            for (int i = 0; i < kSegs; ++i)
+            {
+                float a = angleStep * (float)i;
+                float b = angleStep * (float)((i + 1) % kSegs);
+
+                float ca = cos(a);
+                float sa = sin(a);
+                float cb = cos(b);
+                float sb = sin(b);
+
+                // XY
+                m_gpu->vertex(x_ + f32(ca) * sx_, y_ + f32(sa) * sy_, z_);
+                m_gpu->vertex(x_ + f32(cb) * sx_, y_ + f32(sb) * sy_, z_);
+
+                // YZ
+                m_gpu->vertex(x_, y_ + f32(ca) * sy_, z_ + f32(sa) * sz_);
+                m_gpu->vertex(x_, y_ + f32(cb) * sy_, z_ + f32(sb) * sz_);
+
+                // XZ
+                m_gpu->vertex(x_ + f32(ca) * sx_, y_, z_ + f32(sa) * sz_);
+                m_gpu->vertex(x_ + f32(cb) * sx_, y_, z_ + f32(sb) * sz_);
+            }
+
+            m_gpu->end();
+            // m_gpu->enable_depth_test(true);
+        }
+    }
 
 private:
     zabato::gpu *m_gpu = nullptr;
@@ -295,7 +337,9 @@ void RenderFrame(zabato::window *win, zabato::gpu *gpu)
     ImGui::SetNextWindowSize(ImVec2(300, 225), ImGuiCond_FirstUseEver);
     ImGui::Begin("q3Scene Settings", NULL, 0);
     ImGui::Combo(
-        "Demo", &currentDemo, "Drop Boxes\0Ray Push\0Box Stack\0Test\0");
+        "Demo",
+        &currentDemo,
+        "Drop Boxes\0Ray Push\0Box Stack\0Test\0Sphere Stack\0Drop Shapes\0");
     ImGui::Checkbox("Pause", &paused);
     if (paused)
         ImGui::Checkbox("Single Step", &singleStep);
@@ -381,8 +425,10 @@ void InitDemo(zabato::window *win, zabato::gpu *gpu)
     demos[1]    = new RayPush();
     demos[2]    = new BoxStack();
     demos[3]    = new Test();
-    demoCount   = 4;
-    currentDemo = 3;
+    demos[4]    = new SphereStack();
+    demos[5]    = new DropShapes();
+    demoCount   = 6;
+    currentDemo = 4;
     demos[currentDemo]->Init();
     sprintf(sceneFileName, "q3dump.txt");
 
@@ -402,7 +448,7 @@ void UpdateFrame(float time)
     static f32 accumulator = 0;
     accumulator += time;
 
-    accumulator = q3Clamp01(accumulator);
+    accumulator = clamp(accumulator, f32(0), f32(1));
     while (accumulator >= dt)
     {
         if (!paused)

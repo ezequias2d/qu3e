@@ -2,9 +2,10 @@
 /**
 @file	RayPush.h
 
-@author	Randy Gaul
-@date	11/25/2014
+@author Randy Gaul, Ezequias Silva
+@date   19/12/2025
 Copyright (c) 2014 Randy Gaul http://www.randygaul.net
+Copyright (c) 2025 Ezequias Silva https://github.com/ezequias2d
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -30,7 +31,7 @@ public:
     q3Vec3 nfinal;
     q3Body *impactBody;
 
-    bool ReportShape(q3Box *shape)
+    bool ReportShape(q3Shape *shape)
     {
         if (data.toi < tfinal)
         {
@@ -83,19 +84,19 @@ struct RayPush : public Demo
             acc = 0;
 
             q3BodyDef bodyDef;
-            bodyDef.position.Set(0.0f, 3.0f, 0.0f);
-            bodyDef.axis.Set(q3RandomFloat(-1.0f, 1.0f),
-                             q3RandomFloat(-1.0f, 1.0f),
-                             q3RandomFloat(-1.0f, 1.0f));
-            bodyDef.angle    = q3PI * q3RandomFloat(-1.0f, 1.0f);
-            bodyDef.bodyType = eDynamicBody;
-            bodyDef.angularVelocity.Set(q3RandomFloat(1.0f, 3.0f),
-                                        q3RandomFloat(1.0f, 3.0f),
-                                        q3RandomFloat(1.0f, 3.0f));
-            bodyDef.angularVelocity *= q3Sign(q3RandomFloat(-1.0f, 1.0f));
-            bodyDef.linearVelocity.Set(q3RandomFloat(1.0f, 3.0f),
+            bodyDef.position        = {0, 3, 0};
+            bodyDef.axis            = {q3RandomFloat(-1, 1),
+                                       q3RandomFloat(-1, 1),
+                                       q3RandomFloat(-1, 1)};
+            bodyDef.angle           = r32::pi() * q3RandomFloat(-1.0f, 1.0f);
+            bodyDef.bodyType        = eDynamicBody;
+            bodyDef.angularVelocity = {q3RandomFloat(1.0f, 3.0f),
                                        q3RandomFloat(1.0f, 3.0f),
-                                       q3RandomFloat(1.0f, 3.0f));
+                                       q3RandomFloat(1.0f, 3.0f)};
+            bodyDef.angularVelocity *= q3Sign(q3RandomFloat(-1.0f, 1.0f));
+            bodyDef.linearVelocity = {q3RandomFloat(1.0f, 3.0f),
+                                      q3RandomFloat(1.0f, 3.0f),
+                                      q3RandomFloat(1.0f, 3.0f)};
             bodyDef.linearVelocity *= q3Sign(q3RandomFloat(-1.0f, 1.0f));
             q3Body *body = scene.CreateBody(bodyDef);
 
