@@ -28,15 +28,6 @@ freely, subject to the following restrictions:
 #include "../dynamics/q3Body.h"
 
 //------------------------------------------------------------------------------
-void q3Sphere::SetUserdata(void *data) const { userData = data; }
-
-//------------------------------------------------------------------------------
-void *q3Sphere::GetUserdata() const { return userData; }
-
-//------------------------------------------------------------------------------
-void q3Sphere::SetSensor(bool isSensor) { sensor = isSensor; }
-
-//------------------------------------------------------------------------------
 bool q3Sphere::TestPoint(const q3Transform &tx, const q3Vec3 &p) const
 {
     q3Transform world = q3Mul(tx, local);

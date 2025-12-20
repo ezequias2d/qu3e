@@ -27,6 +27,7 @@ freely, subject to the following restrictions:
 #include "q3Body.h"
 #include "../broadphase/q3BroadPhase.h"
 #include "../collision/q3Box.h"
+#include "../collision/q3Capsule.h"
 #include "../collision/q3Sphere.h"
 #include "../scene/q3Scene.h"
 #include "q3Contact.h"
@@ -146,6 +147,35 @@ const q3Sphere *q3Body::AddSphere(const q3SphereDef &def)
     m_scene->m_newShape = true;
 
     return sphere;
+}
+
+//------------------------------------------------------------------------------
+const q3Capsule *q3Body::AddCapsule(const q3CapsuleDef &def)
+{
+    q3AABB aabb;
+    q3Shape *shape     = (q3Shape *)m_scene->m_heap.Allocate(sizeof(q3Capsule));
+    q3Capsule *capsule = (q3Capsule *)shape;
+    new (capsule) q3Capsule();
+    capsule->m_type = eCapsule;
+    capsule->local  = def.local;
+    capsule->radius = def.radius;
+    capsule->height = def.height;
+    capsule->next   = m_shapes;
+    m_shapes        = capsule;
+    capsule->ComputeAABB(m_tx, &aabb);
+
+    capsule->body        = this;
+    capsule->friction    = def.friction;
+    capsule->restitution = def.restitution;
+    capsule->density     = def.density;
+    capsule->sensor      = def.sensor;
+
+    CalculateMassData();
+
+    m_scene->m_contactManager.m_broadphase.InsertShape(capsule, aabb);
+    m_scene->m_newShape = true;
+
+    return capsule;
 }
 
 //------------------------------------------------------------------------------
@@ -558,6 +588,114 @@ void q3Body::Dump(FILE *file, i32 index) const
                 box->e.y * 2.0f,
                 box->e.z * 2.0f);
             fprintf(file, "\t\tbodies[ %d ]->AddBox( sd );\n", index);
+            fprintf(file, "\t}\n");
+        }
+        else if (shape->m_type == eSphere)
+        {
+            q3Sphere *sphere = (q3Sphere *)shape;
+            fprintf(file, "\t{\n");
+            fprintf(file, "\t\tq3SphereDef sd;\n");
+            fprintf(file,
+                    "\t\tsd.SetFriction( r32( %.15lf ) );\n",
+                    sphere->friction);
+            fprintf(file,
+                    "\t\tsd.SetRestitution( r32( %.15lf ) );\n",
+                    sphere->restitution);
+            fprintf(
+                file, "\t\tsd.SetDensity( r32( %.15lf ) );\n", sphere->density);
+            i32 sensor = (int)sphere->sensor;
+            fprintf(file, "\t\tsd.SetSensor( bool( %d ) );\n", sensor);
+            fprintf(file, "\t\tq3Transform sphereTx;\n");
+            q3Transform sphereTx = sphere->local;
+            q3Vec3 xAxis         = sphereTx.rotation.col0;
+            q3Vec3 yAxis         = sphereTx.rotation.col1;
+            q3Vec3 zAxis         = sphereTx.rotation.col2;
+            fprintf(file,
+                    "\t\tq3Vec3 xAxis( r32( %.15lf ), r32( %.15lf ), r32( "
+                    "%.15lf ) );\n",
+                    xAxis.x,
+                    xAxis.y,
+                    xAxis.z);
+            fprintf(file,
+                    "\t\tq3Vec3 yAxis( r32( %.15lf ), r32( %.15lf ), r32( "
+                    "%.15lf ) );\n",
+                    yAxis.x,
+                    yAxis.y,
+                    yAxis.z);
+            fprintf(file,
+                    "\t\tq3Vec3 zAxis( r32( %.15lf ), r32( %.15lf ), r32( "
+                    "%.15lf ) );\n",
+                    zAxis.x,
+                    zAxis.y,
+                    zAxis.z);
+            fprintf(
+                file,
+                "\t\tsphereTx.rotation.SetColumns( xAxis, yAxis, zAxis );\n");
+            fprintf(file,
+                    "\t\tsphereTx.position.Set( r32( %.15lf ), r32( %.15lf ), "
+                    "r32( %.15lf ) );\n",
+                    sphereTx.position.x,
+                    sphereTx.position.y,
+                    sphereTx.position.z);
+            fprintf(file,
+                    "\t\tsd.Set( sphereTx, r32( %.15lf ) );\n",
+                    sphere->radius);
+            fprintf(file, "\t\tbodies[ %d ]->AddSphere( sd );\n", index);
+            fprintf(file, "\t}\n");
+        }
+        else if (shape->m_type == eCapsule)
+        {
+            q3Capsule *capsule = (q3Capsule *)shape;
+            fprintf(file, "\t{\n");
+            fprintf(file, "\t\tq3CapsuleDef sd;\n");
+            fprintf(file,
+                    "\t\tsd.SetFriction( r32( %.15lf ) );\n",
+                    capsule->friction);
+            fprintf(file,
+                    "\t\tsd.SetRestitution( r32( %.15lf ) );\n",
+                    capsule->restitution);
+            fprintf(file,
+                    "\t\tsd.SetDensity( r32( %.15lf ) );\n",
+                    capsule->density);
+            i32 sensor = (int)capsule->sensor;
+            fprintf(file, "\t\tsd.SetSensor( bool( %d ) );\n", sensor);
+            fprintf(file, "\t\tq3Transform capsuleTx;\n");
+            q3Transform capsuleTx = capsule->local;
+            q3Vec3 xAxis          = capsuleTx.rotation.col0;
+            q3Vec3 yAxis          = capsuleTx.rotation.col1;
+            q3Vec3 zAxis          = capsuleTx.rotation.col2;
+            fprintf(file,
+                    "\t\tq3Vec3 xAxis( r32( %.15lf ), r32( %.15lf ), r32( "
+                    "%.15lf ) );\n",
+                    xAxis.x,
+                    xAxis.y,
+                    xAxis.z);
+            fprintf(file,
+                    "\t\tq3Vec3 yAxis( r32( %.15lf ), r32( %.15lf ), r32( "
+                    "%.15lf ) );\n",
+                    yAxis.x,
+                    yAxis.y,
+                    yAxis.z);
+            fprintf(file,
+                    "\t\tq3Vec3 zAxis( r32( %.15lf ), r32( %.15lf ), r32( "
+                    "%.15lf ) );\n",
+                    zAxis.x,
+                    zAxis.y,
+                    zAxis.z);
+            fprintf(
+                file,
+                "\t\tcapsuleTx.rotation.SetColumns( xAxis, yAxis, zAxis );\n");
+            fprintf(file,
+                    "\t\tcapsuleTx.position.Set( r32( %.15lf ), r32( %.15lf ), "
+                    "r32( %.15lf ) );\n",
+                    capsuleTx.position.x,
+                    capsuleTx.position.y,
+                    capsuleTx.position.z);
+            fprintf(file,
+                    "\t\tsd.Set( capsuleTx, r32( %.15lf ), r32( %.15lf ) );\n",
+                    capsule->height,
+                    capsule->radius);
+            fprintf(file, "\t\tbodies[ %d ]->AddCapsule( sd );\n", index);
             fprintf(file, "\t}\n");
         }
         shape = shape->next;

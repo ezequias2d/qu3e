@@ -45,6 +45,7 @@ enum q3ShapeType
 {
     eSphere,
     eBox,
+    eCapsule,
 };
 
 #define Q3_UNUSED(A) (void)A

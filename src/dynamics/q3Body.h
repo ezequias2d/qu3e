@@ -44,6 +44,8 @@ struct q3Box;
 class q3BoxDef;
 struct q3Sphere;
 struct q3SphereDef;
+struct q3Capsule;
+struct q3CapsuleDef;
 struct q3Shape;
 
 enum q3BodyType
@@ -62,6 +64,7 @@ public:
     // will be created until the next q3Scene::Step( ) call.
     const q3Box *AddBox(const q3BoxDef &def);
     const q3Sphere *AddSphere(const q3SphereDef &def);
+    const q3Capsule *AddCapsule(const q3CapsuleDef &def);
 
     // Removes this shape from the body and broadphase. Forces the body
     // to recompute its mass if the body is dynamic. Frees the memory

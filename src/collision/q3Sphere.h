@@ -38,16 +38,14 @@ struct q3Sphere : public q3Shape
     q3Transform local;
     r32 radius;
 
-    void SetUserdata(void *data) const override;
-    void *GetUserdata() const override;
-    void SetSensor(bool isSensor) override;
-
-    bool TestPoint(const q3Transform &tx, const q3Vec3 &p) const override;
-    bool Raycast(const q3Transform &tx, q3RaycastData *raycast) const override;
-    void ComputeAABB(const q3Transform &tx, q3AABB *aabb) const override;
-    void ComputeMass(q3MassData *md) const override;
-    void
-    Render(const q3Transform &tx, bool awake, q3Render *render) const override;
+    bool TestPoint(const q3Transform &tx, const q3Vec3 &p) const override final;
+    bool Raycast(const q3Transform &tx,
+                 q3RaycastData *raycast) const override final;
+    void ComputeAABB(const q3Transform &tx, q3AABB *aabb) const override final;
+    void ComputeMass(q3MassData *md) const override final;
+    void Render(const q3Transform &tx,
+                bool awake,
+                q3Render *render) const override final;
 };
 
 //------------------------------------------------------------------------------

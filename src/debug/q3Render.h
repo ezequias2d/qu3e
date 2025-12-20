@@ -61,6 +61,7 @@ public:
 
     // Draw a sphere with the scale from SetScale
     virtual void Sphere() = 0;
+    virtual void Capsule(f32 p1x, f32 p1y, f32 p1z, f32 p2x, f32 p2y, f32 p2z, f32 radius) = 0;
 };
 
 #endif // Q3RENDER_H

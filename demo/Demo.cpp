@@ -171,6 +171,122 @@ public:
         }
     }
 
+    void Capsule(f32 p1x,
+                 f32 p1y,
+                 f32 p1z,
+                 f32 p2x,
+                 f32 p2y,
+                 f32 p2z,
+                 f32 radius) override
+    {
+        if (m_gpu)
+        {
+            m_gpu->begin(zabato::primitive_type::lines);
+
+            q3Vec3 p1(p1x, p1y, p1z);
+            q3Vec3 p2(p2x, p2y, p2z);
+            q3Vec3 d = p2 - p1;
+            r32 len  = q3Length(d);
+            if (len < 0.0001f)
+                return;
+
+            q3Vec3 y = d / len;
+            q3Vec3 x, z;
+
+            // Compute basis
+            if (q3Abs(y.x) > q3Abs(y.y))
+                x = q3Cross(q3Vec3(0, 1, 0), y);
+            else
+                x = q3Cross(q3Vec3(1, 0, 0), y);
+
+            x = q3Normalize(x);
+            z = q3Cross(x, y);
+
+            const int kSegs = 20;
+            const float kPi = 3.14159265f;
+            float angleStep = kPi * 2.0f / (float)kSegs;
+
+            for (int i = 0; i < kSegs; ++i)
+            {
+                float a = angleStep * (float)i;
+                float b = angleStep * (float)((i + 1) % kSegs);
+
+                float ca = cos(a);
+                float sa = sin(a);
+                float cb = cos(b);
+                float sb = sin(b);
+
+                // Circle at P1
+                q3Vec3 v1 = p1 + (x * ca + z * sa) * radius;
+                q3Vec3 v2 = p1 + (x * cb + z * sb) * radius;
+                m_gpu->vertex(v1.x, v1.y, v1.z);
+                m_gpu->vertex(v2.x, v2.y, v2.z);
+
+                // Circle at P2
+                q3Vec3 v3 = p2 + (x * ca + z * sa) * radius;
+                q3Vec3 v4 = p2 + (x * cb + z * sb) * radius;
+                m_gpu->vertex(v3.x, v3.y, v3.z);
+                m_gpu->vertex(v4.x, v4.y, v4.z);
+
+                // Connecting lines
+                if (i == 0 || i == kSegs / 2 || i == kSegs / 4 ||
+                    i == kSegs * 3 / 4)
+                {
+                    m_gpu->vertex(v1.x, v1.y, v1.z);
+                    m_gpu->vertex(v3.x, v3.y, v3.z);
+                }
+            }
+
+            // Draw profile arcs for hemispheres
+            for (int i = 0; i < kSegs / 2; ++i)
+            {
+                float a = angleStep * (float)i;
+                float b = angleStep * (float)(i + 1);
+
+                // Top (P2)
+                // Arc in plane defined by Y and X
+                // Angle 0: Y axis (tip). Angle PI/2: X axis (side).
+                // Wait, let's use standard parametric:
+                // y * r * cos(theta) + x * r * sin(theta) ?
+                // theta = 0 -> y*r (tip, along axis away from center P2?). Axis
+                // is Y vector. P2 + y*r is the tip. P2 + x*r is side. theta 0
+                // to PI.
+
+                // Semicircle 1: P2 + radius * (y * sin(theta) + x * cos(theta))
+                // -> theta 0..PI If theta=0 -> x*r (side). theta=PI/2 -> y*r
+                // (tip). theta=PI -> -x*r (other side).
+
+                // Arc 1 (in P2 + plane(x, y))
+                q3Vec3 p2_v1 = p2 + x * cos(a) * radius + y * sin(a) * radius;
+                q3Vec3 p2_v2 = p2 + x * cos(b) * radius + y * sin(b) * radius;
+                m_gpu->vertex(p2_v1.x, p2_v1.y, p2_v1.z);
+                m_gpu->vertex(p2_v2.x, p2_v2.y, p2_v2.z);
+
+                // Arc 2 (in P2 + plane(z, y))
+                q3Vec3 p2_v3 = p2 + z * cos(a) * radius + y * sin(a) * radius;
+                q3Vec3 p2_v4 = p2 + z * cos(b) * radius + y * sin(b) * radius;
+                m_gpu->vertex(p2_v3.x, p2_v3.y, p2_v3.z);
+                m_gpu->vertex(p2_v4.x, p2_v4.y, p2_v4.z);
+
+                // Bottom (P1)
+                // Arc in plane(x, -y)
+                // P1 + radius * (x * cos(theta) - y * sin(theta))
+
+                q3Vec3 p1_v1 = p1 + x * cos(a) * radius - y * sin(a) * radius;
+                q3Vec3 p1_v2 = p1 + x * cos(b) * radius - y * sin(b) * radius;
+                m_gpu->vertex(p1_v1.x, p1_v1.y, p1_v1.z);
+                m_gpu->vertex(p1_v2.x, p1_v2.y, p1_v2.z);
+
+                q3Vec3 p1_v3 = p1 + z * cos(a) * radius - y * sin(a) * radius;
+                q3Vec3 p1_v4 = p1 + z * cos(b) * radius - y * sin(b) * radius;
+                m_gpu->vertex(p1_v3.x, p1_v3.y, p1_v3.z);
+                m_gpu->vertex(p1_v4.x, p1_v4.y, p1_v4.z);
+            }
+
+            m_gpu->end();
+        }
+    }
+
 private:
     zabato::gpu *m_gpu = nullptr;
     f32 x_, y_, z_;

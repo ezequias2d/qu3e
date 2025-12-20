@@ -1,10 +1,9 @@
 //------------------------------------------------------------------------------
 /**
-@file	q3Box.h
+@file	q3Capsule.h
 
-@author Randy Gaul, Ezequias Silva
+@author Ezequias Silva
 @date   19/12/2025
-Copyright (c) 2014 Randy Gaul http://www.randygaul.net
 Copyright (c) 2025 Ezequias Silva https://github.com/ezequias2d
 
 This software is provided 'as-is', without any express or implied
@@ -24,22 +23,22 @@ freely, subject to the following restrictions:
 */
 //------------------------------------------------------------------------------
 
-#ifndef Q3BOX_H
-#define Q3BOX_H
+#ifndef Q3CAPSULE_H
+#define Q3CAPSULE_H
 
 #include "../debug/q3Render.h"
-#include "../math/q3Mat3.h"
 #include "../math/q3Transform.h"
-#include "../math/q3Vec3.h"
+#include "math/q3Vec3.h"
 #include "q3Shape.h"
 
 //------------------------------------------------------------------------------
-// q3Box
+// q3Capsule
 //------------------------------------------------------------------------------
-struct q3Box : public q3Shape
+struct q3Capsule : public q3Shape
 {
     q3Transform local;
-    q3Vec3 e; // extent, as in the extent of each OBB axis
+    r32 height;
+    r32 radius;
 
     bool TestPoint(const q3Transform &tx, const q3Vec3 &p) const override final;
     bool Raycast(const q3Transform &tx,
@@ -52,39 +51,47 @@ struct q3Box : public q3Shape
 };
 
 //------------------------------------------------------------------------------
-// q3BoxDef
-//------------------------------------------------------------------------------
-class q3BoxDef
+struct q3CapsuleDef
 {
-public:
-    q3BoxDef()
+    q3CapsuleDef()
     {
-        // Common default values
-        m_friction    = r32(0.4);
-        m_restitution = r32(0.2);
-        m_density     = r32(1.0);
-        m_sensor      = false;
+        friction    = r32(0.4);
+        restitution = r32(0.2);
+        density     = r32(1.0);
+        sensor      = false;
+        radius      = r32(0.5);
+        height      = r32(1.0);
+        q3Identity(local);
     }
 
-    void Set(const q3Transform &tx, const q3Vec3 &extents);
+    void Set(r32 h, r32 r)
+    {
+        height = h;
+        radius = r;
+    }
 
-    void SetFriction(r32 friction);
-    void SetRestitution(r32 restitution);
-    void SetDensity(r32 density);
-    void SetSensor(bool sensor);
+    void Set(const q3Transform &tx, r32 h, r32 r)
+    {
+        local  = tx;
+        height = h;
+        radius = r;
+    }
 
-private:
-    q3Transform m_tx;
-    q3Vec3 m_e;
+    void SetFriction(r32 f) { friction = f; }
 
-    r32 m_friction;
-    r32 m_restitution;
-    r32 m_density;
-    bool m_sensor;
+    void SetRestitution(r32 r) { restitution = r; }
 
-    friend class q3Body;
+    void SetDensity(r32 d) { density = d; }
+
+    void SetSensor(bool isSensor) { sensor = isSensor; }
+
+    q3Transform local;
+    r32 height;
+    r32 radius;
+    r32 friction;
+    r32 restitution;
+    r32 density;
+    bool sensor;
 };
 
-#include "q3Box.inl"
-
-#endif // Q3BOX_H
+#endif // Q3CAPSULE_H

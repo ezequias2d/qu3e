@@ -2,10 +2,10 @@
 /**
 @file	q3Scene.h
 
-@author	Randy Gaul
-@date	10/10/2014
+@author Randy Gaul, Ezequias Silva
+@date   19/12/2025
 Copyright (c) 2014 Randy Gaul http://www.randygaul.net
-
+Copyright (c) 2025 Ezequias Silva https://github.com/ezequias2d
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
 arising from the use of this software.
@@ -40,6 +40,7 @@ struct q3BodyDef;
 struct q3ContactConstraint;
 class q3Render;
 struct q3Island;
+struct q3Shape;
 
 // This listener is used to gather information about two shapes colliding. This
 // can be used for game logic and sounds. Physics objects created in these
@@ -64,7 +65,7 @@ class q3QueryCallback
 public:
     virtual ~q3QueryCallback() {}
 
-    virtual bool ReportShape(q3Box *box) = 0;
+    virtual bool ReportShape(q3Shape *shape) = 0;
 };
 
 class q3Scene
@@ -159,7 +160,7 @@ private:
     r32 m_dt;
     i32 m_iterations;
 
-    bool m_newBox;
+    bool m_newShape;
     bool m_allowSleep;
     bool m_enableFriction;
 

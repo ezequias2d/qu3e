@@ -59,9 +59,9 @@ struct q3Shape
     mutable void *userData;
     mutable bool sensor;
 
-    virtual void SetUserdata(void *data) const { userData = data; };
-    virtual void *GetUserdata() const { return userData; };
-    virtual void SetSensor(bool isSensor) { sensor = isSensor; };
+    void SetUserdata(void *data) const { userData = data; };
+    void *GetUserdata() const { return userData; };
+    void SetSensor(bool isSensor) { sensor = isSensor; };
 
     virtual bool TestPoint(const q3Transform &tx, const q3Vec3 &p) const = 0;
     virtual bool Raycast(const q3Transform &tx,

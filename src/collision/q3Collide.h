@@ -28,6 +28,7 @@ freely, subject to the following restrictions:
 #define Q3COLLIDE_H
 
 #include "q3Box.h"
+#include "q3Capsule.h"
 #include "q3Sphere.h"
 
 //------------------------------------------------------------------------------
@@ -39,5 +40,10 @@ void q3BoxtoBox(q3Manifold *m, q3Box *a, q3Box *b);
 void q3SphereToSphere(q3Manifold *m, q3Sphere *a, q3Sphere *b);
 void q3SphereToBox(q3Manifold *m, q3Sphere *a, q3Box *b);
 void q3BoxToSphere(q3Manifold *m, q3Box *a, q3Sphere *b);
+void q3CapsuleToCapsule(q3Manifold *m, q3Capsule *a, q3Capsule *b);
+void q3CapsuleToBox(q3Manifold *m, q3Capsule *a, q3Box *b);
+void q3BoxToCapsule(q3Manifold *m, q3Box *a, q3Capsule *b);
+void q3CapsuleToSphere(q3Manifold *m, q3Capsule *a, q3Sphere *b);
+void q3SphereToCapsule(q3Manifold *m, q3Sphere *a, q3Capsule *b);
 
 #endif // Q3COLLIDE_H

@@ -62,6 +62,26 @@ void q3ContactConstraint::SolveCollision(void)
     {
         q3BoxToSphere(&manifold, (q3Box *)A, (q3Sphere *)B);
     }
+    else if (typeA == eCapsule && typeB == eCapsule)
+    {
+        q3CapsuleToCapsule(&manifold, (q3Capsule *)A, (q3Capsule *)B);
+    }
+    else if (typeA == eCapsule && typeB == eBox)
+    {
+        q3CapsuleToBox(&manifold, (q3Capsule *)A, (q3Box *)B);
+    }
+    else if (typeA == eBox && typeB == eCapsule)
+    {
+        q3BoxToCapsule(&manifold, (q3Box *)A, (q3Capsule *)B);
+    }
+    else if (typeA == eCapsule && typeB == eSphere)
+    {
+        q3CapsuleToSphere(&manifold, (q3Capsule *)A, (q3Sphere *)B);
+    }
+    else if (typeA == eSphere && typeB == eCapsule)
+    {
+        q3SphereToCapsule(&manifold, (q3Sphere *)A, (q3Capsule *)B);
+    }
 
     if (manifold.contactCount > 0)
     {

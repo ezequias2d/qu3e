@@ -27,6 +27,7 @@ freely, subject to the following restrictions:
 #define DROPSHAPES_H
 
 #include "../src/collision/q3Box.h"
+#include "../src/collision/q3Capsule.h"
 #include "../src/collision/q3Sphere.h"
 #include "../src/common/q3Geometry.h"
 #include "../src/dynamics/q3Body.h"
@@ -77,7 +78,8 @@ struct DropShapes : public Demo
             bodyDef.linearVelocity *= q3Sign(q3RandomFloat(-1.0f, 1.0f));
             q3Body *body = scene.CreateBody(bodyDef);
 
-            if (q3RandomFloat(0.0f, 1.0f) > 0.5f)
+            r32 r = q3RandomFloat(r32(0.0), r32(1.0));
+            if (r < 0.33f)
             {
                 q3Transform tx;
                 q3Identity(tx);
@@ -85,12 +87,20 @@ struct DropShapes : public Demo
                 boxDef.Set(tx, q3Vec3(1.0f, 1.0f, 1.0f));
                 body->AddBox(boxDef);
             }
-            else
+            else if (r < 0.66f)
             {
                 q3SphereDef sphereDef;
                 sphereDef.radius = 1.0f;
                 sphereDef.SetDensity(1.0f);
                 body->AddSphere(sphereDef);
+            }
+            else
+            {
+                q3CapsuleDef capsuleDef;
+                capsuleDef.radius = 0.5f;
+                capsuleDef.height = 2.0f;
+                capsuleDef.SetDensity(1.0f);
+                body->AddCapsule(capsuleDef);
             }
         }
     }

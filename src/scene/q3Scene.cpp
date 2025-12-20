@@ -2,9 +2,10 @@
 /**
 @file	q3Scene.cpp
 
-@author	Randy Gaul
-@date	10/10/2014
+@author Randy Gaul, Ezequias Silva
+@date   19/12/2025
 Copyright (c) 2014 Randy Gaul http://www.randygaul.net
+Copyright (c) 2025 Ezequias Silva https://github.com/ezequias2d
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -25,7 +26,7 @@ freely, subject to the following restrictions:
 
 #include <stdlib.h>
 
-#include "../collision/q3Box.h"
+#include "../collision/q3Shape.h"
 #include "../dynamics/q3Body.h"
 #include "../dynamics/q3Contact.h"
 #include "../dynamics/q3ContactSolver.h"
@@ -38,7 +39,7 @@ freely, subject to the following restrictions:
 q3Scene::q3Scene(r32 dt, const q3Vec3 &gravity, i32 iterations)
     : m_contactManager(&m_stack), m_boxAllocator(sizeof(q3Box), 256),
       m_bodyCount(0), m_bodyList(NULL), m_gravity(gravity), m_dt(dt),
-      m_iterations(iterations), m_newBox(false), m_allowSleep(true),
+      m_iterations(iterations), m_newShape(false), m_allowSleep(true),
       m_enableFriction(true)
 {
 }
@@ -49,10 +50,10 @@ q3Scene::~q3Scene() { Shutdown(); }
 //------------------------------------------------------------------------------
 void q3Scene::Step()
 {
-    if (m_newBox)
+    if (m_newShape)
     {
         m_contactManager.m_broadphase.UpdatePairs();
-        m_newBox = false;
+        m_newShape = false;
     }
 
     m_contactManager.TestCollisions();
@@ -233,7 +234,7 @@ void q3Scene::RemoveBody(q3Body *body)
 
     m_contactManager.RemoveContactsFromBody(body);
 
-    body->RemoveAllBoxes();
+    body->RemoveAllShapes();
 
     // Remove body from scene bodyList
     if (body->m_next)
@@ -259,7 +260,7 @@ void q3Scene::RemoveAllBodies()
     {
         q3Body *next = body->m_next;
 
-        body->RemoveAllBoxes();
+        body->RemoveAllShapes();
 
         m_heap.Free(body);
 
@@ -333,13 +334,13 @@ void q3Scene::QueryAABB(q3QueryCallback *cb, const q3AABB &aabb) const
         bool TreeCallBack(i32 id)
         {
             q3AABB aabb;
-            q3Box *box = (q3Box *)broadPhase->m_tree.GetUserData(id);
+            q3Shape *shape = (q3Shape *)broadPhase->m_tree.GetUserData(id);
 
-            box->ComputeAABB(box->body->GetTransform(), &aabb);
+            shape->ComputeAABB(shape->body->GetTransform(), &aabb);
 
             if (q3AABBtoAABB(m_aabb, aabb))
             {
-                return cb->ReportShape(box);
+                return cb->ReportShape(shape);
             }
 
             return true;
@@ -364,11 +365,11 @@ void q3Scene::QueryPoint(q3QueryCallback *cb, const q3Vec3 &point) const
     {
         bool TreeCallBack(i32 id)
         {
-            q3Box *box = (q3Box *)broadPhase->m_tree.GetUserData(id);
+            q3Shape *shape = (q3Shape *)broadPhase->m_tree.GetUserData(id);
 
-            if (box->TestPoint(box->body->GetTransform(), m_point))
+            if (shape->TestPoint(shape->body->GetTransform(), m_point))
             {
-                cb->ReportShape(box);
+                cb->ReportShape(shape);
             }
 
             return true;
@@ -398,11 +399,11 @@ void q3Scene::RayCast(q3QueryCallback *cb, q3RaycastData &rayCast) const
     {
         bool TreeCallBack(i32 id)
         {
-            q3Box *box = (q3Box *)broadPhase->m_tree.GetUserData(id);
+            q3Shape *shape = (q3Shape *)broadPhase->m_tree.GetUserData(id);
 
-            if (box->Raycast(box->body->GetTransform(), m_rayCast))
+            if (shape->Raycast(shape->body->GetTransform(), m_rayCast))
             {
-                return cb->ReportShape(box);
+                return cb->ReportShape(shape);
             }
 
             return true;
