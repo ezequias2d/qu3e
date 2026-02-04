@@ -30,9 +30,10 @@ freely, subject to the following restrictions:
 #include <zabato/real.hpp>
 
 using namespace zabato;
-typedef zabato::real r32;
+
+typedef real r32;
 typedef double r64;
-typedef zabato::real f32;
+typedef real f32;
 typedef double f64;
 typedef signed char i8;
 typedef signed short i16;

@@ -105,6 +105,7 @@ r32 &q3Vec3::operator[](u32 i)
         return z;
     default:
         assert(0);
+        return x;
     }
 }
 
@@ -121,6 +122,9 @@ r32 q3Vec3::operator[](u32 i) const
         return y;
     case 2:
         return z;
+    default:
+        assert(0);
+        return x;
     }
 }
 

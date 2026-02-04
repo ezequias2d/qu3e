@@ -25,7 +25,12 @@ freely, subject to the following restrictions:
 //------------------------------------------------------------------------------
 
 #include "q3Contact.h"
+#include "../collision/q3Box.h"
+#include "../collision/q3Capsule.h"
+#include "../collision/q3Collide.h"
 #include "../collision/q3Shape.h"
+#include "../collision/q3Sphere.h"
+#include "q3Contact.h"
 
 //------------------------------------------------------------------------------
 // q3Contact

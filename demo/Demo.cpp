@@ -55,10 +55,12 @@ char sceneFileName[256];
 i32 lastDemo;
 Demo *demos[Q3_DEMO_MAX_COUNT];
 
+using namespace zabato;
+
 class Renderer : public q3Render
 {
 public:
-    void SetGPU(zabato::gpu *gpu) { m_gpu = gpu; }
+    void SetGPU(gpu *gpu) { m_gpu = gpu; }
 
     void SetPenColor(f32 r, f32 g, f32 b, f32 a = 1.0f) override
     {
@@ -82,7 +84,7 @@ public:
         if (m_gpu)
         {
             m_gpu->enable_depth_test(false);
-            m_gpu->begin(zabato::primitive_type::lines);
+            m_gpu->begin(primitive_type::lines);
             m_gpu->vertex(x_, y_, z_);
             m_gpu->vertex(x, y, z);
             m_gpu->end();
@@ -104,7 +106,7 @@ public:
         if (m_gpu)
         {
             m_gpu->enable_lighting(true);
-            m_gpu->begin(zabato::primitive_type::triangles);
+            m_gpu->begin(primitive_type::triangles);
             m_gpu->normal(nx_, ny_, nz_);
             m_gpu->color(0.2f, 0.4f, 0.7f, 0.7f);
             m_gpu->vertex(x1, y1, z1);
@@ -126,7 +128,7 @@ public:
     {
         if (m_gpu)
         {
-            m_gpu->begin(zabato::primitive_type::points);
+            m_gpu->begin(primitive_type::points);
             m_gpu->vertex(x_, y_, z_);
             m_gpu->end();
         }
@@ -137,7 +139,7 @@ public:
         if (m_gpu)
         {
             // m_gpu->enable_depth_test(false);
-            m_gpu->begin(zabato::primitive_type::lines);
+            m_gpu->begin(primitive_type::lines);
 
             const int kSegs = 20;
             const float kPi = 3.14159265f;
@@ -181,7 +183,7 @@ public:
     {
         if (m_gpu)
         {
-            m_gpu->begin(zabato::primitive_type::lines);
+            m_gpu->begin(primitive_type::lines);
 
             q3Vec3 p1(p1x, p1y, p1z);
             q3Vec3 p2(p2x, p2y, p2z);
@@ -288,7 +290,7 @@ public:
     }
 
 private:
-    zabato::gpu *m_gpu = nullptr;
+    gpu *m_gpu = nullptr;
     f32 x_, y_, z_;
     f32 sx_, sy_, sz_;
     f32 nx_, ny_, nz_;
@@ -296,18 +298,18 @@ private:
 
 Renderer renderer;
 
-void OnCursorPos(zabato::window *win, zabato::real x, zabato::real y)
+void OnCursorPos(window *win, real x, real y, real dx, real dy)
 {
     mouseX = (int)x;
     mouseY = (int)y;
 }
 
-void OnMouseButton(zabato::window *win,
-                   zabato::mouse_button button,
-                   zabato::button_state state,
-                   zabato::modifier_keys mods)
+void OnMouseButton(window *win,
+                   mouse_button button,
+                   button_state state,
+                   modifier_keys mods)
 {
-    using namespace zabato;
+
     if (state == button_state::press)
     {
         if (button == mouse_button::left)
@@ -346,11 +348,7 @@ float diffuse[4]  = {0.2f, 0.4f, 0.7f, 1.0f};
 float specular[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 } // namespace Light
 
-void OnKey(zabato::window *win,
-           zabato::key_code key,
-           int,
-           zabato::button_state state,
-           zabato::modifier_keys)
+void OnKey(window *win, key_code key, int, button_state state, modifier_keys)
 {
     using namespace zabato;
     const float increment = 0.2f;
@@ -411,9 +409,9 @@ void OnKey(zabato::window *win,
     }
 }
 
-zabato::texture *g_whiteTex = nullptr;
+texture *g_whiteTex = nullptr;
 
-void RenderFrame(zabato::window *win, zabato::gpu *gpu)
+void RenderFrame(window *win, gpu *gpu)
 {
     gpu->new_frame();
     gpu->enable_scissor_test(false);
@@ -423,39 +421,38 @@ void RenderFrame(zabato::window *win, zabato::gpu *gpu)
     else
         gpu->unbind_texture();
 
-    zabato::vec2<int> size = win->get_framebuffer_size();
-    int w                  = size.x;
-    int h                  = size.y;
+    vec2<int> size = win->get_framebuffer_size();
+    int w          = size.x;
+    int h          = size.y;
     if (h <= 0)
         h = 1;
 
     f32 aspectRatio = (f32)w / (f32)h;
     gpu->viewport(w, h);
-    gpu->set_matrix_mode(zabato::matrix_mode::projection);
+    gpu->set_matrix_mode(matrix_mode::projection);
     gpu->load_identity();
     gpu->perspective_fov(
         45.0f * (3.14159f / 180.0f), aspectRatio, 0.1f, 10000.0f);
-    gpu->set_matrix_mode(zabato::matrix_mode::modelview);
+    gpu->set_matrix_mode(matrix_mode::modelview);
     gpu->load_identity();
 
-    zabato::vec3<zabato::real> pos(
+    vec3<real> pos(
         Camera::position[0], Camera::position[1], Camera::position[2]);
-    zabato::vec3<zabato::real> target(
-        Camera::target[0], Camera::target[1], Camera::target[2]);
-    zabato::vec3<zabato::real> up(0.0f, 1.0f, 0.0f);
-    zabato::mat4<zabato::real> view = zabato::mat4_look_at(pos, target, up);
+    vec3<real> target(Camera::target[0], Camera::target[1], Camera::target[2]);
+    vec3<real> up(0.0f, 1.0f, 0.0f);
+    mat4<real> view = mat4_look_at(pos, target, up);
     gpu->load_matrix(view);
 
-    zabato::imgui::new_frame();
+    imgui::new_frame();
 
     ImGui::SetNextWindowPos(ImVec2(float(w - 300 - 30), 30),
                             ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(300, 225), ImGuiCond_FirstUseEver);
     ImGui::Begin("q3Scene Settings", NULL, 0);
-    ImGui::Combo(
-        "Demo",
-        &currentDemo,
-        "Drop Boxes\0Ray Push\0Box Stack\0Test\0Sphere Stack\0Drop Shapes\0");
+    ImGui::Combo("Demo",
+                 &currentDemo,
+                 "Drop Boxes\0Ray Push\0Box Stack\0Test\0Sphere Stack\0Drop "
+                 "Shapes\0Height Map\0");
     ImGui::Checkbox("Pause", &paused);
     if (paused)
         ImGui::Checkbox("Single Step", &singleStep);
@@ -490,30 +487,29 @@ void RenderFrame(zabato::window *win, zabato::gpu *gpu)
     demos[currentDemo]->Render(&renderer);
 
     ImGui::Render();
-    zabato::imgui::render_draw_data(ImGui::GetDrawData());
+    imgui::render_draw_data(ImGui::GetDrawData());
 
     win->swap_buffers();
 }
 
-void InitDemo(zabato::window *win, zabato::gpu *gpu)
+void InitDemo(window *win, gpu *gpu)
 {
     renderer.SetGPU(gpu);
 
     if (!g_whiteTex)
     {
-        g_whiteTex = gpu->create_texture(1, 1, zabato::color_format::rgba4444);
+        g_whiteTex     = gpu->create_texture(1, 1, color_format::rgba4444);
         uint32_t white = 0xFFFF;
-        g_whiteTex->load(
-            1, 1, zabato::color_format::rgba4444, sizeof(white), &white);
+        g_whiteTex->load(1, 1, color_format::rgba4444, sizeof(white), &white);
     }
 
     gpu->enable_depth_test(true);
     gpu->enable_blend(true);
-    gpu->set_blend_func(zabato::blend_factor::src_alpha,
-                        zabato::blend_factor::one_minus_src_alpha);
+    gpu->set_blend_func(blend_factor::src_alpha,
+                        blend_factor::one_minus_src_alpha);
 
-    zabato::light l;
-    l.type     = zabato::light_type::point;
+    light_data l;
+    l.type     = light_type::point;
     l.ambient  = {Light::ambient[0],
                   Light::ambient[1],
                   Light::ambient[2],
@@ -544,13 +540,13 @@ void InitDemo(zabato::window *win, zabato::gpu *gpu)
     demos[4]    = new SphereStack();
     demos[5]    = new DropShapes();
     demoCount   = 6;
-    currentDemo = 4;
+    currentDemo = 5;
     demos[currentDemo]->Init();
     sprintf(sceneFileName, "q3dump.txt");
 
     win->add_key_callback(OnKey);
     win->add_mouse_button_callback(OnMouseButton);
-    win->add_cursor_pos_callback(OnCursorPos);
+    win->add_cursor_move_callback(OnCursorPos);
 }
 
 void UpdateFrame(float time)

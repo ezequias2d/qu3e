@@ -29,6 +29,8 @@ freely, subject to the following restrictions:
 #include "../src/q3.h"
 #include "zabato/input.hpp"
 
+using namespace zabato;
+
 // Base class for running demos to show off q3
 struct Demo
 {
@@ -39,8 +41,8 @@ struct Demo
     virtual void Shutdown() {};
 
     virtual void Render(q3Render *debugDrawer) { (void)debugDrawer; }
-    virtual void KeyDown(zabato::key_code key) { (void)key; }
-    virtual void KeyUp(zabato::key_code key) { (void)key; }
+    virtual void KeyDown(key_code key) { (void)key; }
+    virtual void KeyUp(key_code key) { (void)key; }
     virtual void LeftClick(i32 x, i32 y)
     {
         (void)x;
